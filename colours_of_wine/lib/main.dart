@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:convert';                                              // convert JSON-Objects
 import 'dart:io';
 import 'package:flutter/material.dart';                             // widgets, buttons, ...
@@ -46,8 +47,8 @@ class WineScannerPage extends StatefulWidget {
 // layout of startcreen
 class _WineScannerPageState extends State<WineScannerPage> {
   final ImagePicker _picker = ImagePicker();                 // camera
-  File? _frontImage;
-  File? _backImage;
+  Uint8List? _frontBytes;
+  Uint8List? _backBytes;
   Map<String, String>? _wineData;                            // results of LLM-analysis
   bool _isLoading = false;                                   // for showing loading symbol
 
@@ -58,10 +59,12 @@ class _WineScannerPageState extends State<WineScannerPage> {
     if (front == null) return;
     final back = await _picker.pickImage(source: ImageSource.camera);
     if (back == null) return;
+    final Uint8List frontBytes = await front.readAsBytes();
+    final Uint8List backBytes = await back.readAsBytes();
 
     setState(() {
-      _frontImage = File(front.path);
-      _backImage = File(back.path);
+      _frontBytes = frontBytes;
+      _backBytes = backBytes;
     });
 
     _showConfirmationDialog();
@@ -77,14 +80,14 @@ class _WineScannerPageState extends State<WineScannerPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,                 // window just as big as needed
           children: [
-            if (_frontImage != null)...[
+            if (_frontBytes != null)...[
               const Text("Front Label:", style: TextStyle(fontWeight: FontWeight.normal, fontSize: 16,),),
-              Image.file(_frontImage!, height: 150, fit: BoxFit.cover),
+              Image.memory(_frontBytes!, height: 150, fit: BoxFit.cover),
               const SizedBox(height: 10),],
 
-            if (_backImage != null)...[
+            if (_backBytes != null)...[
               const Text("Back Label:", style: TextStyle(fontWeight: FontWeight.normal, fontSize: 16,),),
-              Image.file(_backImage!, height: 150, fit: BoxFit.cover),
+              Image.memory(_backBytes!, height: 150, fit: BoxFit.cover),
             ]
           ],
         ),
@@ -114,13 +117,13 @@ class _WineScannerPageState extends State<WineScannerPage> {
   // Extract data with gemini -->
 
   Future<void> _analyzeImages() async {
-    if (_frontImage == null || _backImage == null) return;   // works only with both pictures 
+    if (_frontBytes == null || _backBytes == null) return;   // works only with both pictures 
     if (_isLoading) return;                                  // no double requests
 
     setState(() => _isLoading = true);                       // show loading symbol
 
     try {
-      final result = await _callGemini(_frontImage!, _backImage!);  // give pics to gemini
+      final result = await _callGemini(_frontBytes!, _backBytes!);  // give pics to gemini
       setState(() {
         _wineData = result;                                  // results in map<attribute, data>
       });
@@ -135,7 +138,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
   }
 
 
-  Future<Map<String, String>> _callGemini(File front, File back) async {
+  Future<Map<String, String>> _callGemini(Uint8List frontBytes, Uint8List backBytes) async {
     const apiKey = "AIzaSyC_u49bnxvaObp-2vVXSc0TvSLgQWqyT7c";                   // Gemini Api key
     final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);   // Gemini model
     
@@ -155,9 +158,6 @@ Extrahiere und gebe die gesuchten Informationen im folgenden JSON-FORMAT zurück
 
 Wenn eine Information NICHT angegeben ist, lasse das Feld LEER!
 """;
-
-    final frontBytes = await front.readAsBytes();        // pics in bytes
-    final backBytes = await back.readAsBytes();
 
     final content = [                                // assemble prompt
       Content.multi([
@@ -419,8 +419,8 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
               onPressed: () {
                 setState(() {
                   _wineData = null;
-                  _frontImage = null;
-                  _backImage = null;
+                  _frontBytes = null;
+                  _backBytes = null;
                 });
               },
             ),
