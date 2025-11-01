@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';                             // widgets, 
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';    // google gemini sdk
+import 'package:url_launcher/url_launcher.dart';                    // for web search
+import 'package:http/http.dart' as http;
 
 
 // runs app
@@ -14,7 +16,7 @@ void main() {
 
 /// root widget (stateless)
 class WineApp extends StatelessWidget {
-  const WineApp({super.key});                                //for widget identification
+  const WineApp({super.key});                                // for widget identification
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +24,11 @@ class WineApp extends StatelessWidget {
       title: 'Colours of Wine',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.deepPurple,                   //background colour
-        textTheme: GoogleFonts.cormorantGaramondTextTheme(),  //textfont
+        scaffoldBackgroundColor: const Color.fromRGBO(237, 237, 213, 1),                   // background colour
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(225, 237, 237, 213)),
+        textTheme: GoogleFonts.cormorantGaramondTextTheme(),  // textfont
       ),
-      home: const WineScannerPage(),                          //start screen
+      home: const WineScannerPage(),                          // start screen
     );
   }
 }
@@ -42,7 +45,7 @@ class WineScannerPage extends StatefulWidget {
 
 // layout of startcreen
 class _WineScannerPageState extends State<WineScannerPage> {
-  final ImagePicker _picker = ImagePicker();                 //camera
+  final ImagePicker _picker = ImagePicker();                 // camera
   File? _frontImage;
   File? _backImage;
   Map<String, String>? _wineData;                            // results of LLM-analysis
@@ -138,18 +141,19 @@ class _WineScannerPageState extends State<WineScannerPage> {
     
     // prompt -->
     final prompt = """                                                          
+Du bist Experte für Weine und ihre Etiketten.
 Analysiere die folgenden Weinetiketten (VORDER- UND RÜCKSEITE) gründlich.
 Extrahiere und gebe die gesuchten Informationen im folgenden JSON-FORMAT zurück:
 {
-  "weinname": "",
-  "weingut": "",
-  "jahrgang": "",
-  "rebsorte": "",
-  "anbaugebiet": "",
-  "land": ""
+  "Name": "",
+  "Winery": "",
+  "Vintage": "",
+  "Grape Variety": "",
+  "Vineyard Location": "",
+  "Country": ""
 }
 
-Wenn eine Information nicht angegeben ist, lasse das Feld leer.
+Wenn eine Information NICHT angegeben ist, lasse das Feld LEER!
 """;
 
     final frontBytes = await front.readAsBytes();        // pics in bytes
@@ -185,12 +189,12 @@ Wenn eine Information nicht angegeben ist, lasse das Feld leer.
   // for filling in data manually -->
   Future<void> _enterManually() async {
   final Map<String, TextEditingController> controllers = {
-    "Name des Weins": TextEditingController(),
-    "Weingut": TextEditingController(),
-    "Jahrgang": TextEditingController(),
-    "Rebsorte": TextEditingController(),
-    "Anbauort": TextEditingController(),
-    "Land": TextEditingController(),
+    "Name": TextEditingController(),
+    "Winery": TextEditingController(),
+    "Vintage": TextEditingController(),
+    "Grape Variety": TextEditingController(),
+    "Vineyard Location": TextEditingController(),
+    "Country": TextEditingController(),
   };
 
   await showDialog(
@@ -242,11 +246,65 @@ Wenn eine Information nicht angegeben ist, lasse das Feld leer.
 }
 
 
+// Web resarch -->
+Future<List<Map<String, String>>> _fetchWineDescription() async {
+  if (_wineData == null || _isLoading) return [];       // check if data is available
+
+  setState(() => _isLoading = true);                 // show loading screen
+
+  try {
+    const apiKey = "ec05db9a150499c3e869cb95e63a146a5b1dce6257c1042bf89c340bf2c22d1a";   // SerpApi key
+
+    final name = _wineData!['Name'] ?? '';
+    final weingut = _wineData!['Winery'] ?? '';
+    final jahrgang = _wineData!['Vintage'] ?? '';
+    final rebsorte = _wineData!['Grape Variety'] ?? '';
+    final anbaugebiet = _wineData!['Vineyard Location'] ?? '';
+    final land = _wineData!['Country'] ?? '';
+    
+    final query = Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land description");
+
+    final url = Uri.parse("https://serpapi.com/search.json?q=$query&hl=en&api_key=$apiKey");       // insert query and key to search
+
+    final response = await http.get(url);
+
+    if (response.statusCode != 200) {
+      throw Exception("Search failed with ${response.statusCode}");
+    }
+
+    final data = jsonDecode(response.body);
+    final results = <Map<String, String>>[];
+
+    
+    if (data['organic_results'] != null) {
+      for (var item in data['organic_results']) {
+        results.add({
+          "title": item['title'] ?? "No title",
+          "snippet": item['snippet'] ?? "",
+          "url": item['link'] ?? "",
+        });
+      }
+    }
+
+    return results;
+
+  } catch (e) {
+    debugPrint("Fehler beim Laden der Beschreibung: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Error retrieving wine descriptions.")),
+    );
+    return [];
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
+
+
+
   // UI 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Colours of Wine")),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -287,7 +345,7 @@ Wenn eine Information nicht angegeben ist, lasse das Feld leer.
 
   Widget _buildResultView() {                    // show registered data              
   return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 35),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -308,7 +366,7 @@ Wenn eine Information nicht angegeben ist, lasse das Feld leer.
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 100,
+                  width: 150,
                   child: Text(
                     "${e.key[0].toUpperCase()}${e.key.substring(1)}:",    // categories
                     style: TextStyle(
@@ -318,12 +376,13 @@ Wenn eine Information nicht angegeben ist, lasse das Feld leer.
                     ),
                   ),
                 ),
+                const SizedBox(width: 5), 
                 Expanded(
                   child: Text(                                            // entries
                     e.value.isEmpty ? "-" : e.value,                      // if nothing found "-"
                     style: const TextStyle(
                       fontSize: 16,
-                      color: Colors.black87,
+                      color: const Color.fromARGB(255, 0, 0, 0),
                     ),
                   ),
                 ),
@@ -332,26 +391,137 @@ Wenn eine Information nicht angegeben ist, lasse das Feld leer.
           ),
         ),
 
-        const SizedBox(height: 30),
+      const SizedBox(height: 20),
 
-        Center(
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.refresh),
-            label: const Text("Try again"),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton.icon(                                 // start web serach
+              icon: const Icon(Icons.search),
+              label: const Text("Get Wine Descriptions"),
+              onPressed: () async {
+                final results = await _fetchWineDescription();
+                if (context.mounted) {
+                  _showDescriptionPopup(results);
+                }
+              },
             ),
-            onPressed: () {
-              setState(() {
-                _wineData = null;
-                _frontImage = null;
-                _backImage = null;
-              });
-            },
+
+        const SizedBox(height: 16),
+
+            ElevatedButton.icon(
+              icon: const Icon(Icons.refresh),
+              label: const Text("Try again"),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              onPressed: () {
+                setState(() {
+                  _wineData = null;
+                  _frontImage = null;
+                  _backImage = null;
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+);
+}
+
+
+void _showDescriptionPopup(List<Map<String, String>> results) {     // show result of web search
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        shape: RoundedRectangleBorder(                   // corners of window
+          borderRadius: BorderRadius.circular(16),             
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          constraints: const BoxConstraints(maxHeight: 500),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(                                                  // header
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Wine Descriptions",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),                  // close descriptions
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+
+
+              const SizedBox(height: 10),
+
+              Expanded(                                             // description (scrollable)
+                child: results.isEmpty
+                    ? const Center(
+                        child: Text("No descriptions found."),
+                      )
+                    : ListView.builder(
+                        itemCount: results.length,
+                        itemBuilder: (context, index) {
+                          final item = results[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['title'] ?? "Untitled",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  item['snippet'] ?? "",
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                if (item['url'] != null) ...[
+                                  const SizedBox(height: 4),
+                                  GestureDetector(
+                                    onTap: () => launchUrl(Uri.parse(item['url']!)),
+                                    child: Text(
+                                      item['url']!,
+                                      style: const TextStyle(
+                                        color: Colors.blue,
+                                        decoration: TextDecoration.underline,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const Divider(height: 20),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
         ),
-      ],
-    ),
+      );
+    },
   );
 }
+
 }
+
+
+// flutter devices
+// flutter run -d BQLDU19C04000620
