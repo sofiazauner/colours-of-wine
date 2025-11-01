@@ -253,8 +253,6 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
   setState(() => _isLoading = true);                 // show loading screen
 
   try {
-    const apiKey = "ec05db9a150499c3e869cb95e63a146a5b1dce6257c1042bf89c340bf2c22d1a";   // SerpApi key
-
     final name = _wineData!['Name'] ?? '';
     final weingut = _wineData!['Winery'] ?? '';
     final jahrgang = _wineData!['Vintage'] ?? '';
@@ -264,7 +262,8 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
     
     final query = Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land description");
 
-    final url = Uri.parse("https://serpapi.com/search.json?q=$query&hl=en&api_key=$apiKey");       // insert query and key to search
+    // TODO should migrate this to AWS or something...
+    final url = Uri.parse("http://66.135.20.195/wine-api?key=OlorHsQgpq9je6WIxeXIVY9Xdw&q=$query");
 
     final response = await http.get(url);
 
