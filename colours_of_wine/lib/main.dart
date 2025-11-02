@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';    // google gemini sdk
 import 'package:url_launcher/url_launcher.dart';                    // for web search
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';                           // for kIsWeb
 
 
 // runs app
@@ -55,6 +56,9 @@ class _WineScannerPageState extends State<WineScannerPage> {
 
   // take two pictures with camera
   Future<void> _takePhotos() async {
+    if (kIsWeb) {                                           // in Chrome upload images
+    _showUploadDialog();
+  } else {                                                  // handy takes pictures
     final front = await _picker.pickImage(source: ImageSource.camera);
     if (front == null) return;
     final back = await _picker.pickImage(source: ImageSource.camera);
@@ -69,6 +73,119 @@ class _WineScannerPageState extends State<WineScannerPage> {
 
     _showConfirmationDialog();
   }
+  }
+
+
+// upload labels in chrome
+void _showUploadDialog() {
+  Uint8List? frontBytes;
+  Uint8List? backBytes;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Upload Photos of Label",
+                  style: TextStyle(
+                    fontWeight: FontWeight.normal,
+                    fontSize: 20,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ElevatedButton.icon(                                  // front label
+                  icon: const Icon(Icons.upload_file, size: 20),
+                  label: const Text("Front Label"),
+                  style: ElevatedButton.styleFrom(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final front = await _picker.pickImage(source: ImageSource.gallery);
+                    if (front == null) return;
+                    final bytes = await front.readAsBytes();
+                    setDialogState(() => frontBytes = bytes);
+                  },
+                ),
+
+                if (frontBytes != null) ...[
+                  const SizedBox(height: 6),
+                  const Text("✅ Front Label", style: TextStyle(color: Colors.green)),
+                ],
+
+                const SizedBox(height: 16),
+
+                // Back label upload
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.upload_file, size: 20),
+                  label: const Text("Upload Back Label"),
+                  style: ElevatedButton.styleFrom(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final back = await _picker.pickImage(source: ImageSource.gallery);
+                    if (back == null) return;
+                    final bytes = await back.readAsBytes();
+                    setDialogState(() => backBytes = bytes);
+                  },
+                ),
+
+                if (backBytes != null) ...[
+                  const SizedBox(height: 6),
+                  const Text("✅ Back Label", style: TextStyle(color: Colors.green)),
+                ],
+              ],
+            ),
+            actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            actionsAlignment: MainAxisAlignment.end,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (frontBytes == null || backBytes == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Please upload both label photos!"), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 6), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: EdgeInsets.all(50),),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(context);
+                  setState(() {
+                    _frontBytes = frontBytes;
+                    _backBytes = backBytes;
+                  });
+                  _showConfirmationDialog();
+                },
+                child: const Text("Confirm"),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
 
   // check if user is satisfied with pics
@@ -290,7 +407,7 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
   } catch (e) {
     debugPrint("Fehler beim Laden der Beschreibung: $e");
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Error retrieving wine descriptions.")),
+      const SnackBar(content: Text("Error retrieving wine descriptions - Please try again!"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
     );
     return [];
   } finally {
