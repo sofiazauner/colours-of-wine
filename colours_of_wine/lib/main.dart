@@ -332,7 +332,7 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
           label: const Text("Scan label"),
           onPressed: _takePhotos,
         ),
-        const SizedBox(height: 1),
+        const SizedBox(height: 5),
         ElevatedButton.icon(
           icon: const Icon(Icons.edit),
           label: const Text("Fill data in manually"),            // fill in manually
