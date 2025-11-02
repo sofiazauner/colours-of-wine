@@ -15,7 +15,7 @@ void main() {
 }
 
 
-/// root widget (stateless)
+// root widget (stateless)
 class WineApp extends StatelessWidget {
   const WineApp({super.key});                                // for widget identification
 
@@ -35,7 +35,7 @@ class WineApp extends StatelessWidget {
 }
 
 
-/// startscreen
+// startscreen
 class WineScannerPage extends StatefulWidget {
   const WineScannerPage({super.key});
 
@@ -92,7 +92,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
           ],
         ),
         actions: [
-          // Retaking
+          // retaking
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);         // closes window and reopens camera
@@ -100,7 +100,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
             },
             child: const Text("Retake Photos"),
           ),
-          // Confirming --> extract data
+          // confirming --> extract data
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);         // closes window and starts LLM-analyzing
@@ -114,7 +114,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
   }
 
 
-  // Extract data with gemini -->
+  // extract data with gemini -->
 
   Future<void> _analyzeImages() async {
     if (_frontBytes == null || _backBytes == null) return;   // works only with both pictures 
@@ -139,8 +139,8 @@ class _WineScannerPageState extends State<WineScannerPage> {
 
 
   Future<Map<String, String>> _callGemini(Uint8List frontBytes, Uint8List backBytes) async {
-    const apiKey = "AIzaSyC_u49bnxvaObp-2vVXSc0TvSLgQWqyT7c";                   // Gemini Api key
-    final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);   // Gemini model
+    const apiKey = "AIzaSyC_u49bnxvaObp-2vVXSc0TvSLgQWqyT7c";                   // gemini Api key
+    final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);   // gemini model
     
     // prompt -->
     final prompt = """                                                          
@@ -246,7 +246,7 @@ Wenn eine Information NICHT angegeben ist, lasse das Feld LEER!
 }
 
 
-// Web resarch -->
+// web resarch -->
 Future<List<Map<String, String>>> _fetchWineDescription() async {
   if (_wineData == null || _isLoading) return [];       // check if data is available
 
@@ -297,7 +297,6 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
     setState(() => _isLoading = false);
   }
 }
-
 
 
   // UI 
@@ -439,7 +438,7 @@ void _showDescriptionPopup(List<Map<String, String>> results) {     // show resu
     builder: (context) {
       return Dialog(
         insetPadding: const EdgeInsets.all(20),
-        shape: RoundedRectangleBorder(                   // corners of window
+        shape: RoundedRectangleBorder(                   
           borderRadius: BorderRadius.circular(16),             
         ),
         child: Container(
