@@ -6,9 +6,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';    // google gemini sdk
 import 'package:url_launcher/url_launcher.dart';                    // for web search
+import 'package:http_parser/src/media_type.dart';                   // boilerplate for multipart
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';                           // for kIsWeb
 
+// URL for our cloud functions.
+// Uncomment the second for testing, first for production.
+// (TODO: add a more convenient switch somehow)
+final baseURL = "https://us-central1-colours-of-wine.cloudfunctions.net";
+//final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
 
 // runs app
 void main() {
@@ -256,45 +262,20 @@ void _showUploadDialog() {
 
 
   Future<Map<String, String>> _callGemini(Uint8List frontBytes, Uint8List backBytes) async {
-    const apiKey = "AIzaSyC_u49bnxvaObp-2vVXSc0TvSLgQWqyT7c";                   // gemini Api key
-    final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);   // gemini model
-    
-    // prompt -->
-    final prompt = """                                                          
-Du bist Experte für Weine und ihre Etiketten.
-Analysiere die folgenden Weinetiketten (VORDER- UND RÜCKSEITE) gründlich.
-Extrahiere und gebe die gesuchten Informationen im folgenden JSON-FORMAT zurück:
-{
-  "Name": "",
-  "Winery": "",
-  "Vintage": "",
-  "Grape Variety": "",
-  "Vineyard Location": "",
-  "Country": ""
-}
-
-Wenn eine Information NICHT angegeben ist, lasse das Feld LEER!
-""";
-
-    final content = [                                // assemble prompt
-      Content.multi([
-        TextPart(prompt),
-        DataPart('image/jpeg', frontBytes),
-        DataPart('image/jpeg', backBytes),
-      ])
-    ];
+    var request = new http.MultipartRequest('POST', Uri.parse("$baseURL/callGemini"));
+    request.files.add(http.MultipartFile.fromBytes('front', frontBytes,
+      contentType: MediaType.parse('image/jpeg'), filename: 'front.jpeg'));
+    request.files.add(http.MultipartFile.fromBytes('back', backBytes,
+      contentType: MediaType.parse('image/jpeg'), filename: 'back.jpeg'));
 
     try {
-      final response = await model.generateContent(content);   // let gemini answer
-      if (response.text == null || response.text!.isEmpty) {
-        throw Exception("No response from Gemini recieved.");
+      final response = await request.send();
+      if (response.statusCode != 200) {
+        throw Exception("Failed to call Gemini (${response.statusCode})");
       }
 
-      final jsonStart = response.text!.indexOf("{");           // extract JSON-Object
-      final jsonEnd = response.text!.lastIndexOf("}") + 1;
-      final jsonString = response.text!.substring(jsonStart, jsonEnd);
-
-      final decoded = jsonDecode(jsonString);                 // convert JSON-object to map
+      final text = await response.stream.bytesToString();
+      final decoded = jsonDecode(text);
       return Map<String, String>.from(decoded);
     } catch (e) {
       debugPrint("Gemini Error: $e");
@@ -380,7 +361,7 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
     final query = Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land description");
 
     // TODO should migrate this to AWS or something...
-    final url = Uri.parse("http://66.135.20.195/wine-api?key=OlorHsQgpq9je6WIxeXIVY9Xdw&q=$query");
+    final url = Uri.parse("$baseURL/searchWine?key=OlorHsQgpq9je6WIxeXIVY9Xdw&q=$query");
 
     final response = await http.get(url);
 
