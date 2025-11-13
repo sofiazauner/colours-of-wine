@@ -9,15 +9,23 @@ import 'package:url_launcher/url_launcher.dart';                    // for web s
 import 'package:http_parser/src/media_type.dart';                   // boilerplate for multipart
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';                           // for kIsWeb
+import 'package:firebase_core/firebase_core.dart';                  // for firebase
+import 'package:colours_of_wine/firebase_options.dart';             // ditto
+import 'package:firebase_auth/firebase_auth.dart';                  // authentication
+import 'package:google_sign_in/google_sign_in.dart';                // ditto
 
 // URL for our cloud functions.
 // Uncomment the second for testing, first for production.
 // (TODO: add a more convenient switch somehow)
 final baseURL = "https://us-central1-colours-of-wine.cloudfunctions.net";
-//final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
+// final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
 
 // runs app
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const WineApp());
 }
 
@@ -36,163 +44,328 @@ class WineApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(225, 237, 237, 213)),
         textTheme: GoogleFonts.cormorantGaramondTextTheme(),  // textfont
       ),
-      home: const WineScannerPage(),                          // start screen
+      home: const InitPage(),                          // start screen
     );
   }
 }
 
 
-// startscreen
-class WineScannerPage extends StatefulWidget {
-  const WineScannerPage({super.key});
+// init screen - decide if we need login or not
+class InitPage extends StatefulWidget {
+  const InitPage({super.key});
 
   @override
-  State<WineScannerPage> createState() => _WineScannerPageState();
+  State<InitPage> createState() => _InitPageState();
+
+}
+
+class _InitPageState extends State<InitPage> {
+  // UI 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _buildInitView(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInitView() {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (BuildContext context, AsyncSnapshot<User?> snapshot) {
+        if (snapshot.hasError) {
+          return const Text('Something went wrong');
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Text("Loading...");
+        }
+
+        if (!snapshot.hasData) {
+          // needs sign in
+          return const LoginPage();
+        }
+
+        final user = snapshot.data!;
+        return WineScannerPage(user);
+      },
+    );
+  }
+}
+
+// needs sign in -> login screen
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  // UI 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _buildLoginView(),
+        ),
+      ),
+    );
+  }
+
+  // login screen
+  Widget _buildLoginView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Image.asset('assets/logo.png', height: 230, fit: BoxFit.contain,),   // logo
+        const SizedBox(height: 20),
+        Text("Sign in to start", style: Theme.of(context).textTheme.titleLarge,), // text
+        const SizedBox(height: 30),
+        ElevatedButton.icon(                                   // cam 
+          icon: const Icon(Icons.photo_camera),
+          label: const Text("Sign in with Google"),
+          onPressed: _signInWithGoogle,
+        ),
+      ],
+    );
+  }
+
+  Future<Widget> _signInWithGoogle() async {
+    final user = await _signInWithGoogleImpl();
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to sign in"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
+      );
+    }
+    return InitPage();
+  }
+
+  Future<UserCredential?> _signInWithGoogleImpl() async {
+    if (kIsWeb) {                                             
+      // Create a new provider
+      GoogleAuthProvider googleProvider = GoogleAuthProvider();
+
+      // Once signed in, return the UserCredential
+      return await FirebaseAuth.instance.signInWithPopup(googleProvider);
+    } else {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
+      final GoogleSignInAuthentication googleAuth = googleUser!.authentication;
+      final credential = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
+      return await FirebaseAuth.instance.signInWithCredential(credential);
+    }
+  }
+}
+
+class WineData {
+  WineData(Map<String, String> data) :
+    name = data['Name'] ?? '',
+    winery = data['Winery'] ?? '',
+    vintage = data['Vintage'] ?? '',
+    grapeVariety = data['Grape Variety'] ?? '',
+    vineyardLocation = data['Vineyard Location'] ?? '',
+    country = data['Country'] ?? '';
+
+  Map<String, String> toMap() {
+    return {
+      'Name': name,
+      'Winery': winery,
+      'Vintage': vintage,
+      'Grape Variety': grapeVariety,
+      'Vineyard Location': vineyardLocation,
+      'Country': country
+    };
+  }
+
+  final String name;
+  final String winery;           // Weingut
+  final String vintage;          // Jahrgang
+  final String grapeVariety;     // Rebsorte
+  final String vineyardLocation; // Anbaugebiet
+  final String country;
+
+  // Encode the wine as a URI component.
+  String toUriComponent() {
+    final name = this.name;
+    final weingut = this.winery;
+    final jahrgang = this.vintage;
+    final rebsorte = this.grapeVariety;
+    final anbaugebiet = this.vineyardLocation;
+    final land = this.country;
+    
+    return Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land description");
+  }
+}
+
+// startscreen
+class WineScannerPage extends StatefulWidget {
+  const WineScannerPage(this._user, {super.key});
+
+  final User _user;
+
+  @override
+  State<WineScannerPage> createState() => _WineScannerPageState(_user);
 }
 
 
 // layout of startcreen
 class _WineScannerPageState extends State<WineScannerPage> {
+  _WineScannerPageState(this._user);
+
   final ImagePicker _picker = ImagePicker();                 // camera
   Uint8List? _frontBytes;
   Uint8List? _backBytes;
-  Map<String, String>? _wineData;                            // results of LLM-analysis
+  WineData? _wineData;                                       // results of LLM-analysis
+  List<WineData>? _pastWineData;                             // previous results
   bool _isLoading = false;                                   // for showing loading symbol
+  final User _user;                                          // user ID
+  String? _token;
 
+  Future<String> _getToken() async {
+    if (_token == null) {
+      _token = await _user.getIdToken();
+    }
+    return _token!;
+  }
 
   // take two pictures with camera
   Future<void> _takePhotos() async {
+    final token = await _getToken();
     if (kIsWeb) {                                           // in Chrome upload images
-    _showUploadDialog();
-  } else {                                                  // handy takes pictures
-    final front = await _picker.pickImage(source: ImageSource.camera);
-    if (front == null) return;
-    final back = await _picker.pickImage(source: ImageSource.camera);
-    if (back == null) return;
-    final Uint8List frontBytes = await front.readAsBytes();
-    final Uint8List backBytes = await back.readAsBytes();
+      _showUploadDialog();
+    } else {                                                  // handy takes pictures
+      final front = await _picker.pickImage(source: ImageSource.camera);
+      if (front == null) return;
+      final back = await _picker.pickImage(source: ImageSource.camera);
+      if (back == null) return;
+      final Uint8List frontBytes = await front.readAsBytes();
+      final Uint8List backBytes = await back.readAsBytes();
 
-    setState(() {
-      _frontBytes = frontBytes;
-      _backBytes = backBytes;
-    });
+      setState(() {
+        _frontBytes = frontBytes;
+        _backBytes = backBytes;
+      });
 
-    _showConfirmationDialog();
+      _showConfirmationDialog();
+    }
   }
-  }
 
+  // upload labels in chrome
+  void _showUploadDialog() {
+    Uint8List? frontBytes;
+    Uint8List? backBytes;
 
-// upload labels in chrome
-void _showUploadDialog() {
-  Uint8List? frontBytes;
-  Uint8List? backBytes;
-
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Upload Photos of Label",
-                  style: TextStyle(
-                    fontWeight: FontWeight.normal,
-                    fontSize: 20,
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ElevatedButton.icon(                                  // front label
-                  icon: const Icon(Icons.upload_file, size: 20),
-                  label: const Text("Front Label"),
-                  style: ElevatedButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Upload Photos of Label",
+                    style: TextStyle(
+                      fontWeight: FontWeight.normal,
+                      fontSize: 20,
                     ),
                   ),
-                  onPressed: () async {
-                    final front = await _picker.pickImage(source: ImageSource.gallery);
-                    if (front == null) return;
-                    final bytes = await front.readAsBytes();
-                    setDialogState(() => frontBytes = bytes);
-                  },
-                ),
-
-                if (frontBytes != null) ...[
-                  const SizedBox(height: 6),
-                  const Text("✅ Front Label", style: TextStyle(color: Colors.green)),
                 ],
-
-                const SizedBox(height: 16),
-
-                // Back label upload
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.upload_file, size: 20),
-                  label: const Text("Upload Back Label"),
-                  style: ElevatedButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ElevatedButton.icon(                                  // front label
+                    icon: const Icon(Icons.upload_file, size: 20),
+                    label: const Text("Front Label"),
+                    style: ElevatedButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
+                    onPressed: () async {
+                      final front = await _picker.pickImage(source: ImageSource.gallery);
+                      if (front == null) return;
+                      final bytes = await front.readAsBytes();
+                      setDialogState(() => frontBytes = bytes);
+                    },
                   ),
-                  onPressed: () async {
-                    final back = await _picker.pickImage(source: ImageSource.gallery);
-                    if (back == null) return;
-                    final bytes = await back.readAsBytes();
-                    setDialogState(() => backBytes = bytes);
-                  },
-                ),
 
-                if (backBytes != null) ...[
-                  const SizedBox(height: 6),
-                  const Text("✅ Back Label", style: TextStyle(color: Colors.green)),
+                  if (frontBytes != null) ...[
+                    const SizedBox(height: 6),
+                    const Text("✅ Front Label", style: TextStyle(color: Colors.green)),
+                  ],
+
+                  const SizedBox(height: 16),
+
+                  // Back label upload
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.upload_file, size: 20),
+                    label: const Text("Upload Back Label"),
+                    style: ElevatedButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final back = await _picker.pickImage(source: ImageSource.gallery);
+                      if (back == null) return;
+                      final bytes = await back.readAsBytes();
+                      setDialogState(() => backBytes = bytes);
+                    },
+                  ),
+
+                  if (backBytes != null) ...[
+                    const SizedBox(height: 6),
+                    const Text("✅ Back Label", style: TextStyle(color: Colors.green)),
+                  ],
                 ],
+              ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              actionsAlignment: MainAxisAlignment.end,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (frontBytes == null || backBytes == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Please upload both label photos!"), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 6), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: EdgeInsets.all(50),),
+                      );
+                      return;
+                    }
+
+                    Navigator.pop(context);
+                    setState(() {
+                      _frontBytes = frontBytes;
+                      _backBytes = backBytes;
+                    });
+                    _showConfirmationDialog();
+                  },
+                  child: const Text("Confirm"),
+                ),
               ],
-            ),
-            actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            actionsAlignment: MainAxisAlignment.end,
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (frontBytes == null || backBytes == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please upload both label photos!"), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 6), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: EdgeInsets.all(50),),
-                    );
-                    return;
-                  }
-
-                  Navigator.pop(context);
-                  setState(() {
-                    _frontBytes = frontBytes;
-                    _backBytes = backBytes;
-                  });
-                  _showConfirmationDialog();
-                },
-                child: const Text("Confirm"),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
+            );
+          },
+        );
+      },
+    );
+  }
 
   // check if user is satisfied with pics
   void _showConfirmationDialog() {
@@ -238,7 +411,6 @@ void _showUploadDialog() {
 
 
   // extract data with gemini -->
-
   Future<void> _analyzeImages() async {
     if (_frontBytes == null || _backBytes == null) return;   // works only with both pictures 
     if (_isLoading) return;                                  // no double requests
@@ -260,9 +432,10 @@ void _showUploadDialog() {
     }
   }
 
-
-  Future<Map<String, String>> _callGemini(Uint8List frontBytes, Uint8List backBytes) async {
+  Future<WineData> _callGemini(Uint8List frontBytes, Uint8List backBytes) async {
     var request = new http.MultipartRequest('POST', Uri.parse("$baseURL/callGemini"));
+    final token = await _getToken();
+    request.fields['token'] = token;
     request.files.add(http.MultipartFile.fromBytes('front', frontBytes,
       contentType: MediaType.parse('image/jpeg'), filename: 'front.jpeg'));
     request.files.add(http.MultipartFile.fromBytes('back', backBytes,
@@ -276,7 +449,7 @@ void _showUploadDialog() {
 
       final text = await response.stream.bytesToString();
       final decoded = jsonDecode(text);
-      return Map<String, String>.from(decoded);
+      return WineData(Map<String, String>.from(decoded));
     } catch (e) {
       debugPrint("Gemini Error: $e");
       throw Exception("Gemini Analysis failed: $e");
@@ -286,115 +459,144 @@ void _showUploadDialog() {
 
   // for filling in data manually -->
   Future<void> _enterManually() async {
-  final Map<String, TextEditingController> controllers = {
-    "Name": TextEditingController(),
-    "Winery": TextEditingController(),
-    "Vintage": TextEditingController(),
-    "Grape Variety": TextEditingController(),
-    "Vineyard Location": TextEditingController(),
-    "Country": TextEditingController(),
-  };
+    final Map<String, TextEditingController> controllers = {
+      "Name": TextEditingController(),
+      "Winery": TextEditingController(),
+      "Vintage": TextEditingController(),
+      "Grape Variety": TextEditingController(),
+      "Vineyard Location": TextEditingController(),
+      "Country": TextEditingController(),
+    };
 
-  await showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text("Enter wine details"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: controllers.entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: TextField(
-                  controller: entry.value,
-                  decoration: InputDecoration(
-                    labelText:
-                        entry.key[0].toUpperCase() + entry.key.substring(1),
-                    border: const OutlineInputBorder(),
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Enter wine details"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: controllers.entries.map((entry) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: TextField(
+                    controller: entry.value,
+                    decoration: InputDecoration(
+                      labelText:
+                          entry.key[0].toUpperCase() + entry.key.substring(1),
+                      border: const OutlineInputBorder(),
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
-        ),
-        actions: [
-          ElevatedButton(                    // closes window        
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(                    // saves data
-            onPressed: () {
-              final data = <String, String>{};
-              controllers.forEach((key, ctrl) {
-                data[key] = ctrl.text.trim();
-              });
+          actions: [
+            ElevatedButton(                    // closes window        
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(                    // saves data
+              onPressed: () {
+                final data = <String, String>{};
+                controllers.forEach((key, ctrl) {
+                  data[key] = ctrl.text.trim();
+                });
 
-              Navigator.pop(context);
-              setState(() {
-                _wineData = data;
-              });
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-
-// web resarch -->
-Future<List<Map<String, String>>> _fetchWineDescription() async {
-  if (_wineData == null || _isLoading) return [];       // check if data is available
-
-  setState(() => _isLoading = true);                 // show loading screen
-
-  try {
-    final name = _wineData!['Name'] ?? '';
-    final weingut = _wineData!['Winery'] ?? '';
-    final jahrgang = _wineData!['Vintage'] ?? '';
-    final rebsorte = _wineData!['Grape Variety'] ?? '';
-    final anbaugebiet = _wineData!['Vineyard Location'] ?? '';
-    final land = _wineData!['Country'] ?? '';
-    
-    final query = Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land description");
-
-    // TODO should migrate this to AWS or something...
-    final url = Uri.parse("$baseURL/searchWine?key=OlorHsQgpq9je6WIxeXIVY9Xdw&q=$query");
-
-    final response = await http.get(url);
-
-    if (response.statusCode != 200) {
-      throw Exception("Search failed with ${response.statusCode}");
-    }
-
-    final data = jsonDecode(response.body);
-    final results = <Map<String, String>>[];
-
-    
-    if (data['organic_results'] != null) {
-      for (var item in data['organic_results']) {
-        results.add({
-          "title": item['title'] ?? "No title",
-          "snippet": item['snippet'] ?? "",
-          "url": item['link'] ?? "",
-        });
-      }
-    }
-
-    return results;
-
-  } catch (e) {
-    debugPrint("Fehler beim Laden der Beschreibung: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Error retrieving wine descriptions - Please try again!"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
+                Navigator.pop(context);
+                setState(() {
+                  _wineData = WineData(data);
+                });
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
     );
-    return [];
-  } finally {
-    setState(() => _isLoading = false);
   }
-}
+
+  // list previous searches
+  Future<List<WineData>> _fetchSearchHistory() async {
+    if (_isLoading) return [];       // do not load twice
+
+    setState(() => _isLoading = true);                 // show loading screen
+
+    try {
+      final token = await _getToken();
+      print("getSearchHistory...");
+      final url = Uri.parse("$baseURL/searchHistory?token=$token");
+      final response = await http.get(url);
+
+      if (response.statusCode != 200) {
+        throw Exception("Search failed with ${response.statusCode}");
+      }
+
+      final data = jsonDecode(response.body);
+      List<WineData> list = [];
+      for (var item in data) {
+        Map<String, String> map = Map.castFrom(item);
+        list.add(WineData(map));
+      }
+
+      return list;
+    } catch (e) {
+      debugPrint("Fehler beim Laden der Beschreibung: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error retrieving wine descriptions - Please try again!"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
+      );
+      return [];
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _showSearchHistory() async {
+    _pastWineData = await _fetchSearchHistory();
+  }
+
+  // web resarch -->
+  Future<List<Map<String, String>>> _fetchWineDescription() async {
+    if (_wineData == null || _isLoading) return [];       // check if data is available
+
+    setState(() => _isLoading = true);                 // show loading screen
+
+    try {
+      final query = _wineData!.toUriComponent();
+      final token = await _getToken();
+      final url = Uri.parse("$baseURL/searchWine?token=$token&q=$query");
+      final response = await http.get(url);
+
+      if (response.statusCode != 200) {
+        throw Exception("Search failed with ${response.statusCode}");
+      }
+
+      final data = jsonDecode(response.body);
+      final results = <Map<String, String>>[];
+
+      
+      if (data['organic_results'] != null) {
+        for (var item in data['organic_results']) {
+          results.add({
+            "title": item['title'] ?? "No title",
+            "snippet": item['snippet'] ?? "",
+            "url": item['link'] ?? "",
+          });
+        }
+      }
+
+      return results;
+
+    } catch (e) {
+      debugPrint("Fehler beim Laden der Beschreibung: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error retrieving wine descriptions - Please try again!"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
+      );
+      return [];
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
 
   // UI 
@@ -408,12 +610,13 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
               ? const CircularProgressIndicator()
               : _wineData != null
                   ? _buildResultView()
-                  : _buildStartView(),
+                  : _pastWineData != null ?
+                    _buildHistoryView() :
+                    _buildStartView(),
         ),
       ),
     );
   }
-
 
   // regular startscreen
   Widget _buildStartView() {
@@ -435,99 +638,172 @@ Future<List<Map<String, String>>> _fetchWineDescription() async {
           label: const Text("Fill data in manually"),            // fill in manually
           onPressed: _enterManually,
         ),
+        const SizedBox(height: 5),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.history),
+          label: const Text("Previous searches"),            // previous searches
+          onPressed: _showSearchHistory,
+        ),
       ],
     );
   }
 
-
-  Widget _buildResultView() {                    // show registered data              
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 35),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(                                    // heading
-          "Registered Information:",
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.normal,
-                color: const Color.fromARGB(255, 0, 0, 0),
-              ),
-        ),
-        const SizedBox(height: 20),
-
-        // entries
-        ..._wineData!.entries.map(
-          (e) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 150,
-                  child: Text(
-                    "${e.key[0].toUpperCase()}${e.key.substring(1)}:",    // categories
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 5), 
-                Expanded(
-                  child: Text(                                            // entries
-                    e.value.isEmpty ? "-" : e.value,                      // if nothing found "-"
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-      const SizedBox(height: 20),
-
-      Center(
+  Widget _buildWineCard(WineData data) {               // generic wine card
+    // maybe include the circle here? or I don't know
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            ElevatedButton.icon(                                 // start web serach
-              icon: const Icon(Icons.search),
-              label: const Text("Get Wine Descriptions"),
-              onPressed: () async {
-                final results = await _fetchWineDescription();
-                if (context.mounted) {
-                  _showDescriptionPopup(results);
-                }
-              },
-            ),
-
-        const SizedBox(height: 16),
-
-            ElevatedButton.icon(
-              icon: const Icon(Icons.refresh),
-              label: const Text("Try again"),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ...data.toMap().entries.map(
+              (e) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      child: Text(
+                        "${e.key[0].toUpperCase()}${e.key.substring(1)}:",    // categories
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5), 
+                    Expanded(
+                      child: Text(                                            // entries
+                        e.value.isEmpty ? "-" : e.value,                      // if nothing found "-"
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: const Color.fromARGB(255, 0, 0, 0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              onPressed: () {
-                setState(() {
-                  _wineData = null;
-                  _frontBytes = null;
-                  _backBytes = null;
-                });
-              },
             ),
           ],
         ),
       ),
-    ],
-  ),
-);
-}
+    );
+  }
+
+  Widget _buildHistoryView() {                    // show previous data
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 35),
+      child: ListView(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            child: Text(                                    // heading
+              "Previous Searches:",
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.normal,
+                color: const Color.fromARGB(255, 0, 0, 0),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // entries
+          ..._pastWineData!.map((e) => Column(
+            children: [
+              _buildWineCard(e),
+              const SizedBox(height: 1),
+            ],
+          )),
+
+          const SizedBox(height: 1),
+
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.cancel),
+                  label: const Text("Return"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _pastWineData = null;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultView() {                    // show registered data
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 35),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            child: Text(                                    // heading
+              "Registered Information:",
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.normal,
+                color: const Color.fromARGB(255, 0, 0, 0),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // entries
+          _buildWineCard(_wineData!),
+
+          const SizedBox(height: 20),
+
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton.icon(                                 // start web serach
+                  icon: const Icon(Icons.search),
+                  label: const Text("Get Wine Descriptions"),
+                  onPressed: () async {
+                    final results = await _fetchWineDescription();
+                    if (context.mounted) {
+                      _showDescriptionPopup(results);
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.refresh),
+                  label: const Text("Try again"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _wineData = null;
+                      _frontBytes = null;
+                      _backBytes = null;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
 
 void _showDescriptionPopup(List<Map<String, String>> results) {     // show result of web search
@@ -608,15 +884,14 @@ void _showDescriptionPopup(List<Map<String, String>> results) {     // show resu
                           );
                         },
                       ),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
-
+        );
+      },
+    );
+  }
 }
 
 
