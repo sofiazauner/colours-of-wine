@@ -1,24 +1,25 @@
-import 'dart:typed_data';
-import 'dart:convert';                                              // convert JSON-Objects
+import 'dart:convert'; 
+import 'dart:typed_data';                                                     // convert JSON-Objects
 import 'dart:io';
-import 'package:flutter/material.dart';                             // widgets, buttons, ...
+import 'package:flutter/material.dart';                                       // widgets, buttons, ...
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';    // google gemini sdk
-import 'package:url_launcher/url_launcher.dart';                    // for web search
-import 'package:http_parser/src/media_type.dart';                   // boilerplate for multipart
+import 'package:google_generative_ai/google_generative_ai.dart';              // google gemini sdk
+import 'package:url_launcher/url_launcher.dart';                              // for web search
+import 'package:http_parser/src/media_type.dart';                             // boilerplate for multipart
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';                           // for kIsWeb
-import 'package:firebase_core/firebase_core.dart';                  // for firebase
-import 'package:colours_of_wine/firebase_options.dart';             // ditto
-import 'package:firebase_auth/firebase_auth.dart';                  // authentication
-import 'package:google_sign_in/google_sign_in.dart';                // ditto
+import 'package:flutter/foundation.dart';                                     // for kIsWeb
+import 'package:firebase_core/firebase_core.dart';                            // for firebase
+import 'package:colours_of_wine/firebase_options.dart';                       
+import 'package:firebase_auth/firebase_auth.dart';                            // for authentication (Google Sign-In)
+import 'package:google_sign_in/google_sign_in.dart';                          
+import 'package:intl/intl.dart';                                              // for date formatting
 
-// URL for our cloud functions.
-// Uncomment the second for testing, first for production.
-// (TODO: add a more convenient switch somehow)
-final baseURL = "https://us-central1-colours-of-wine.cloudfunctions.net";
-// final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
+
+// URL for our cloud functions. Uncomment the second for testing, first for production.
+// final baseURL = "https://us-central1-colours-of-wine.cloudfunctions.net";
+ final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
+
 
 // runs app
 void main() async {
@@ -29,10 +30,9 @@ void main() async {
   runApp(const WineApp());
 }
 
-
 // root widget (stateless)
 class WineApp extends StatelessWidget {
-  const WineApp({super.key});                                // for widget identification
+  const WineApp({super.key});                          // for widget identification
 
   @override
   Widget build(BuildContext context) {
@@ -40,9 +40,9 @@ class WineApp extends StatelessWidget {
       title: 'Colours of Wine',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color.fromRGBO(237, 237, 213, 1),                   // background colour
+        scaffoldBackgroundColor: const Color.fromRGBO(237, 237, 213, 1),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(225, 237, 237, 213)),
-        textTheme: GoogleFonts.cormorantGaramondTextTheme(),  // textfont
+        textTheme: GoogleFonts.cormorantGaramondTextTheme(),
       ),
       home: const InitPage(),                          // start screen
     );
@@ -50,13 +50,16 @@ class WineApp extends StatelessWidget {
 }
 
 
+
+
+// Login Logic -->
+
 // init screen - decide if we need login or not
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
 
   @override
   State<InitPage> createState() => _InitPageState();
-
 }
 
 class _InitPageState extends State<InitPage> {
@@ -97,7 +100,7 @@ class _InitPageState extends State<InitPage> {
   }
 }
 
-// needs sign in -> login screen
+// login screen
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -119,17 +122,17 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // login screen
+  // login screen (Google Sign-In)
   Widget _buildLoginView() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Image.asset('assets/logo.png', height: 230, fit: BoxFit.contain,),   // logo
         const SizedBox(height: 20),
-        Text("Sign in to start", style: Theme.of(context).textTheme.titleLarge,), // text
+        Text("Sign in to start", style: Theme.of(context).textTheme.titleLarge,),
         const SizedBox(height: 30),
-        ElevatedButton.icon(                                   // cam 
-          icon: const Icon(Icons.photo_camera),
+        ElevatedButton.icon( 
+          icon: const Icon(Icons.login),
           label: const Text("Sign in with Google"),
           onPressed: _signInWithGoogle,
         ),
@@ -163,6 +166,56 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+
+
+
+// classes for Data-Structures-->
+
+// class for storing wines
+class StoredWine {
+  final String id;
+  final String name;
+  final List<String> descriptions;
+  final DateTime? createdAt;
+
+  StoredWine({
+    required this.id, 
+    required this.name,
+    required this.descriptions,
+    this.createdAt,});
+
+   factory StoredWine.fromJson(Map<String, dynamic> json) {
+    final rawList = json['descriptions'];
+    final List<String> descriptions = rawList is List
+        ? rawList.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty).toList()
+        : [];
+    return StoredWine(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      descriptions: descriptions,
+      createdAt: json['createdAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['createdAt'])
+          : null,
+    );
+  }
+}
+
+// web search result structure
+class WineWebResult {
+  final List<Map<String, String>> sources;
+  final String? summary;
+  final bool? summaryApproved;
+  final String? summaryFeedback;
+
+  WineWebResult({
+    required this.sources,
+    this.summary,
+    this.summaryApproved,
+    this.summaryFeedback,
+  });
+}
+
+// wine data structure
 class WineData {
   WineData(Map<String, String> data) :
     name = data['Name'] ?? '',
@@ -190,6 +243,23 @@ class WineData {
   final String vineyardLocation; // Anbaugebiet
   final String country;
 
+  final allowedDomains = [       // filter descriptions form Internet and only allow trusted wine sites for web search
+      "winefolly.com",
+      "decanter.com",
+      "wineenthusiast.com",
+      "wine.com",
+      "vivino.com",
+      "wine-searcher.com",
+      "jancisrobinson.com",
+      "vinous.com",
+      "jamessuckling.com",
+      "winespectator.com",
+      "falstaff.de",
+      "wein.plus",
+      "cellartracker.com",
+      "vicampo.de",
+    ];
+
   // Encode the wine as a URI component.
   String toUriComponent() {
     final name = this.name;
@@ -198,10 +268,17 @@ class WineData {
     final rebsorte = this.grapeVariety;
     final anbaugebiet = this.vineyardLocation;
     final land = this.country;
+
+    final siteFilter = allowedDomains.map((d) => "site:$d").join(" OR ");
     
-    return Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land description");
+    return Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land wine description ($siteFilter)");
   }
 }
+
+
+
+
+// Central controller + UI -->
 
 // startscreen
 class WineScannerPage extends StatefulWidget {
@@ -213,7 +290,6 @@ class WineScannerPage extends StatefulWidget {
   State<WineScannerPage> createState() => _WineScannerPageState(_user);
 }
 
-
 // layout of startcreen
 class _WineScannerPageState extends State<WineScannerPage> {
   _WineScannerPageState(this._user);
@@ -221,25 +297,61 @@ class _WineScannerPageState extends State<WineScannerPage> {
   final ImagePicker _picker = ImagePicker();                 // camera
   Uint8List? _frontBytes;
   Uint8List? _backBytes;
-  WineData? _wineData;                                       // results of LLM-analysis
-  List<WineData>? _pastWineData;                             // previous results
-  bool _isLoading = false;                                   // for showing loading symbol
+  WineData? _wineData;                                       // results of LLM-analysis of Label
+  List<StoredWine>? _pastWineData;                           // previous results
+  bool _isLoading = false;                                   
   final User _user;                                          // user ID
   String? _token;
 
-  Future<String> _getToken() async {
-    if (_token == null) {
-      _token = await _user.getIdToken();
-    }
-    return _token!;
+  final TextEditingController _searchController = TextEditingController();  // for searching previous winesearches in history view
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  // take two pictures with camera
+  Future<String> _getToken() async {
+    _token ??= await _user.getIdToken();
+    return _token!;
+  } 
+
+  // Sign out 
+  Future<void> _signOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+ 
+      // clear data
+      setState(() {
+        _wineData = null;
+        _pastWineData = null;
+        _frontBytes = null;
+        _backBytes = null;
+        _token = null;
+      });
+
+  } catch (e) {
+    debugPrint("Sign-out error: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Error while signing out - please try again!"),behavior: SnackBarBehavior.floating,duration: Duration(seconds: 5),backgroundColor: Color.fromARGB(255, 210, 8, 8),margin: EdgeInsets.all(50),
+      ),
+    );
+  }
+}
+
+
+
+
+// Logic for wine data registration (camera, manual) -->
+
+  // take pictures of labels with camera
   Future<void> _takePhotos() async {
     final token = await _getToken();
     if (kIsWeb) {                                           // in Chrome upload images
       _showUploadDialog();
-    } else {                                                  // handy takes pictures
+    } else {                                                // handy takes pictures
       final front = await _picker.pickImage(source: ImageSource.camera);
       if (front == null) return;
       final back = await _picker.pickImage(source: ImageSource.camera);
@@ -367,7 +479,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
     );
   }
 
-  // check if user is satisfied with pics
+  // check if user is satisfied with pics (uploaded or taken)
   void _showConfirmationDialog() {
     showDialog(
       context: context,                                   // open on top of screen
@@ -409,13 +521,12 @@ class _WineScannerPageState extends State<WineScannerPage> {
     );
   }
 
-
   // extract data with gemini -->
   Future<void> _analyzeImages() async {
     if (_frontBytes == null || _backBytes == null) return;   // works only with both pictures 
     if (_isLoading) return;                                  // no double requests
 
-    setState(() => _isLoading = true);                       // show loading symbol
+    setState(() => _isLoading = true);                       
 
     try {
       final result = await _callGemini(_frontBytes!, _backBytes!);  // give pics to gemini
@@ -424,7 +535,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
       });
     } catch (e) {
       debugPrint("Error with analysis: $e");
-      ScaffoldMessenger.of(context).showSnackBar(           // error message if needed
+      ScaffoldMessenger.of(context).showSnackBar(           
         const SnackBar(content: Text("Something went wrong while analyzing your wine label - Please try again!"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
       );
     } finally {
@@ -456,7 +567,6 @@ class _WineScannerPageState extends State<WineScannerPage> {
     }
   }
 
-
   // for filling in data manually -->
   Future<void> _enterManually() async {
     final Map<String, TextEditingController> controllers = {
@@ -477,13 +587,18 @@ class _WineScannerPageState extends State<WineScannerPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: controllers.entries.map((entry) {
+                 String label;
+                  if (entry.key == "Grape Variety") {
+                    label = "Grape Variety     (mandatory)";
+                  } else { 
+                    label = entry.key[0].toUpperCase() + entry.key.substring(1);
+                  }
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: TextField(
                     controller: entry.value,
                     decoration: InputDecoration(
-                      labelText:
-                          entry.key[0].toUpperCase() + entry.key.substring(1),
+                      labelText: label,
                       border: const OutlineInputBorder(),
                     ),
                   ),
@@ -516,55 +631,37 @@ class _WineScannerPageState extends State<WineScannerPage> {
     );
   }
 
-  // list previous searches
-  Future<List<WineData>> _fetchSearchHistory() async {
-    if (_isLoading) return [];       // do not load twice
 
-    setState(() => _isLoading = true);                 // show loading screen
 
-    try {
-      final token = await _getToken();
-      print("getSearchHistory...");
-      final url = Uri.parse("$baseURL/searchHistory?token=$token");
-      final response = await http.get(url);
 
-      if (response.statusCode != 200) {
-        throw Exception("Search failed with ${response.statusCode}");
-      }
+  // Logic for getting wine descriptions from the Internet -->
 
-      final data = jsonDecode(response.body);
-      List<WineData> list = [];
-      for (var item in data) {
-        Map<String, String> map = Map.castFrom(item);
-        list.add(WineData(map));
-      }
-
-      return list;
-    } catch (e) {
-      debugPrint("Fehler beim Laden der Beschreibung: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error retrieving wine descriptions - Please try again!"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
-      );
-      return [];
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _showSearchHistory() async {
-    _pastWineData = await _fetchSearchHistory();
-  }
-
-  // web resarch -->
+  // web resarch
   Future<List<Map<String, String>>> _fetchWineDescription() async {
-    if (_wineData == null || _isLoading) return [];       // check if data is available
+    if (_wineData == null || _isLoading) return [];            // check if data is available
+ 
+    if (_wineData!.grapeVariety.isEmpty) {                     // check if variety is given
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Grape Variety is mandatory! Please make sure it gets registered and try again!", style: TextStyle(color: Color.fromARGB(255, 255, 255, 251)), textAlign: TextAlign.center,),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 8),
+        backgroundColor: Color.fromARGB(255, 184, 114, 17), 
+        margin: const EdgeInsets.only(bottom: 500, left: 50, right: 50,),
+      ),
+    );
+    return [];}
 
-    setState(() => _isLoading = true);                 // show loading screen
+    setState(() => _isLoading = true);                   // show loading screen
 
     try {
       final query = _wineData!.toUriComponent();
       final token = await _getToken();
-      final url = Uri.parse("$baseURL/searchWine?token=$token&q=$query");
+      final wineName = _wineData!.name;
+      final url = Uri.parse("$baseURL/fetchDescriptions").replace(queryParameters: {
+        'token': token,
+        'q': query,
+        'name': wineName,});
       final response = await http.get(url);
 
       if (response.statusCode != 200) {
@@ -574,7 +671,6 @@ class _WineScannerPageState extends State<WineScannerPage> {
       final data = jsonDecode(response.body);
       final results = <Map<String, String>>[];
 
-      
       if (data['organic_results'] != null) {
         for (var item in data['organic_results']) {
           results.add({
@@ -598,15 +694,171 @@ class _WineScannerPageState extends State<WineScannerPage> {
     }
   }
 
+  
 
-  // UI 
+
+// Logic to summarize descriptions --> -->
+
+  // get summary from descriptions
+  Future<Map<String, dynamic>> fetchSummary() async {
+    if (_isLoading) {
+      return {};
+    }
+    setState(() => _isLoading = true);  
+    try {
+      final token = await _getToken();
+      final query = _wineData!.toUriComponent();
+      final url = Uri.parse("$baseURL/generateSummary?token=$token&q=$query");
+      final response = await http.get(url);
+
+      if (response.statusCode != 200) {
+        throw Exception("Failed to fetch summary (${response.statusCode})");
+      }
+
+      final data = jsonDecode(response.body);
+    
+      return {
+        "summary": data["summary"],
+        "approved": data["approved"],
+      };
+    } catch (e) {
+      debugPrint("Error while fetching summary: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error retrieving summary - Please try again!"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
+      );
+      return {};
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+
+
+
+// Logic for generating images with Gemini -->
+//(TODO: !!)
+
+
+
+
+// Logic for previous search database -->
+
+  // find previous searches
+  Future<List<StoredWine>> _fetchSearchHistory() async {
+    if (_isLoading) return []; 
+
+    setState(() => _isLoading = true);
+
+    try {
+      final token = await _getToken();
+      final url = Uri.parse("$baseURL/searchHistory?token=$token");
+      final response = await http.get(url);
+
+      if (response.statusCode != 200) {
+        throw Exception("Search failed with ${response.statusCode}");
+      }
+
+      final List<dynamic> data = jsonDecode(response.body);
+      final List<StoredWine> list = data.map((item) {
+        final map = Map<String, dynamic>.from(item);
+        return StoredWine.fromJson(map);
+      }).toList();  
+
+      return list;
+    } catch (e) {
+      debugPrint("Fehler beim Laden der Beschreibung: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error retrieving wine descriptions - Please try again!"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
+      );
+      return [];
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _showSearchHistory() async {
+    final history = await _fetchSearchHistory();
+    setState(() {
+      _pastWineData = history;
+    });
+  }
+  
+  //delete previous search entry
+  Future<void> _deleteStoredWine(String id) async {
+  try {
+    final token = await _getToken();
+    final url = Uri.parse("$baseURL/deleteSearch").replace(     // remove from database
+      queryParameters: {
+        'token': token,
+        'id': id,
+      },
+    );
+
+    final response = await http.post(url);
+
+    if (response.statusCode != 200) {
+      throw Exception("Error: Delete failed: ${response.statusCode}");
+    }
+
+    setState(() {
+      _pastWineData!.removeWhere((w) => w.id == id);           // remove from local list
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Entry was successfully deleted!", style: TextStyle(color: Color.fromARGB(255, 255, 255, 251)), textAlign: TextAlign.center,),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 4),
+        backgroundColor: Color.fromARGB(255, 184, 114, 17), 
+        margin: const EdgeInsets.only(bottom: 500, left: 50, right: 50,),
+      ),
+    );
+
+  } catch (e) {
+    debugPrint("Delete error: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Failed to delete entry - Please try again!"),behavior: SnackBarBehavior.floating,duration: Duration(seconds: 4),backgroundColor: Colors.red,),
+    );
+  }
+}
+
+
+
+
+// User Interfaces for the different screens --->
+
   @override
   Widget build(BuildContext context) {
+    final email = _user.email;
+    final userLabel = email ?? "Unknown user";
+
     return Scaffold(
+      appBar: AppBar(
+      backgroundColor: const Color.fromRGBO(255, 255, 255, 0),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 0, left: 0, bottom: 30),
+          child: Center(
+            child: Text(
+              userLabel,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ),
+        IconButton(
+          padding: const EdgeInsets.only(bottom: 30),
+          iconSize: 18,
+          tooltip: "Sign out",
+          icon: const Icon(Icons.logout),
+          onPressed: _signOut,
+        ),
+      ],
+    ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: _isLoading                  // depending on state = loading-symbol, results, or startscreen
+          child: _isLoading                  // depending on state = loading-symbol, results, login,...
               ? const CircularProgressIndicator()
               : _wineData != null
                   ? _buildResultView()
@@ -618,14 +870,14 @@ class _WineScannerPageState extends State<WineScannerPage> {
     );
   }
 
-  // regular startscreen
+  // regular homescreen
   Widget _buildStartView() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Image.asset('assets/logo.png', height: 230, fit: BoxFit.contain,),   // logo
         const SizedBox(height: 20),
-        Text("Discover you wine",style: Theme.of(context).textTheme.titleLarge,), // text
+        Text("Discover you wine",style: Theme.of(context).textTheme.titleLarge,), 
         const SizedBox(height: 30),
         ElevatedButton.icon(                                   // cam 
           icon: const Icon(Icons.photo_camera),
@@ -635,21 +887,21 @@ class _WineScannerPageState extends State<WineScannerPage> {
         const SizedBox(height: 5),
         ElevatedButton.icon(
           icon: const Icon(Icons.edit),
-          label: const Text("Fill data in manually"),            // fill in manually
+          label: const Text("Fill data in manually"),
           onPressed: _enterManually,
         ),
         const SizedBox(height: 5),
         ElevatedButton.icon(
           icon: const Icon(Icons.history),
-          label: const Text("Previous searches"),            // previous searches
+          label: const Text("Previous searches"),
           onPressed: _showSearchHistory,
         ),
       ],
     );
   }
 
-  Widget _buildWineCard(WineData data) {               // generic wine card
-    // maybe include the circle here? or I don't know
+  // generic wine card for displaying wine data
+  Widget _buildWineCard(WineData data) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -692,9 +944,82 @@ class _WineScannerPageState extends State<WineScannerPage> {
     );
   }
 
-  Widget _buildHistoryView() {                    // show previous data
+  // wine card for previous searches
+  Widget _buildStoredWineCard(StoredWine item) {
+  return Card(
+    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    child: Stack(
+      children: [
+        Positioned(
+          right: 6,
+          top: 6,
+          child: InkWell(
+            onTap: () => _deleteStoredWine(item.id),
+            child: const Icon(Icons.close, size: 20, color: Color.fromARGB(255, 111, 101, 25)),
+          ),
+        ),
+    
+    Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            item.name.isEmpty ? "(No name)" : item.name,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 113, 9, 9),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Optional: Datum
+          if (item.createdAt != null) ...[
+            Text(
+              DateFormat.yMMMMd().add_jm().format(item.createdAt!.toLocal()),
+              style: const TextStyle(fontSize: 14, color: Color.fromARGB(255, 71, 69, 69)),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // Feld mit Beschreibungen
+          if (item.descriptions.isNotEmpty) ...[
+            const Text(
+              "Descriptions:",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...item.descriptions.map((d) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    "• $d",
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                )),
+          ] else
+            const Text(
+              "No descriptions saved.",
+              style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
+            ),
+        ],
+      ),
+    ),
+    ],
+    ),
+  );
+}
+
+  // previous searches view
+  Widget _buildHistoryView() {
+    // filter for searching option
+    final List<StoredWine> visibleItems = _pastWineData!.where((w) =>_searchQuery.isEmpty || w.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 35),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5),
       child: ListView(
         children: [
           Padding(
@@ -703,39 +1028,109 @@ class _WineScannerPageState extends State<WineScannerPage> {
               "Previous Searches:",
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.normal,
-                color: const Color.fromARGB(255, 0, 0, 0),
+                color: Color.fromARGB(255, 113, 9, 9),
               ),
             ),
           ),
           const SizedBox(height: 20),
 
-          // entries
-          ..._pastWineData!.map((e) => Column(
+          Padding(                                               // search bar
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
             children: [
-              _buildWineCard(e),
-              const SizedBox(height: 1),
-            ],
-          )),
-
-          const SizedBox(height: 1),
-
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.cancel),
-                  label: const Text("Return"),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    hintText: "Search for a wine name",
+                    border: OutlineInputBorder(borderSide: BorderSide(color: Color.fromARGB(255, 236, 111, 111))),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    filled: true,
+                    prefixIcon: Icon(Icons.wine_bar),
+                    prefixIconColor: Color.fromARGB(255, 113, 9, 9),
+                    fillColor: Color.fromARGB(255, 249, 246, 233),
                   ),
-                  onPressed: () {
+                  onSubmitted: (value) {
                     setState(() {
-                      _pastWineData = null;
+                      _searchQuery = value.trim();
                     });
                   },
                 ),
-              ],
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.search),
+                tooltip: "Search",
+                onPressed: () {
+                  setState(() {
+                    _searchQuery = _searchController.text.trim();
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        if (visibleItems.isEmpty)     // no matches
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              "No entries found.",
+              style: TextStyle(fontStyle: FontStyle.italic),
+            ),
+         )
+        else                          // show matches
+          ...visibleItems.map((e) => Column(
+                children: [
+                  _buildStoredWineCard(e),
+                  const SizedBox(height: 1),
+                ],
+              )),
+
+          const SizedBox(height: 1),
+
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.refresh),
+                    label: const Text("Reset Search"),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _searchQuery = '';
+                        _searchController.clear();
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 7),
+
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.close),
+                    label: const Text("Close"),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _pastWineData = null;
+                        _searchQuery = '';
+                        _searchController.clear();
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -743,7 +1138,8 @@ class _WineScannerPageState extends State<WineScannerPage> {
     );
   }
 
-  Widget _buildResultView() {                    // show registered data
+  // result view after analyzing label to show registered data
+  Widget _buildResultView() {                    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 35),
       child: Column(
@@ -770,14 +1166,15 @@ class _WineScannerPageState extends State<WineScannerPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ElevatedButton.icon(                                 // start web serach
+                ElevatedButton.icon(                                 // start web search
                   icon: const Icon(Icons.search),
                   label: const Text("Get Wine Descriptions"),
                   onPressed: () async {
-                    final results = await _fetchWineDescription();
-                    if (context.mounted) {
-                      _showDescriptionPopup(results);
-                    }
+                    final result = await _fetchWineDescription();
+                     if (result.isEmpty) return;
+                     if (!mounted) return;
+
+                      _showDescriptionPopup(result);
                   },
                 ),
 
@@ -805,94 +1202,200 @@ class _WineScannerPageState extends State<WineScannerPage> {
     );
   }
 
+  // view for descriptions from web search
+    void _showDescriptionPopup(List<Map<String, String>> results) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool isSummaryLoading = false;
+        String? summaryText;
+        bool? summaryApproved;
+        String? summaryFeedback;
 
-void _showDescriptionPopup(List<Map<String, String>> results) {     // show result of web search
-  showDialog(
-    context: context,
-    builder: (context) {
-      return Dialog(
-        insetPadding: const EdgeInsets.all(20),
-        shape: RoundedRectangleBorder(                   
-          borderRadius: BorderRadius.circular(16),             
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          constraints: const BoxConstraints(maxHeight: 500),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(                                                  // header
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Wine Descriptions",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),                  // close descriptions
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+        // NEW: local image state
+        bool isImageLoading = false;
+        String? generatedImageBase64;
+
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Dialog(
+              insetPadding: const EdgeInsets.all(20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-
-
-              const SizedBox(height: 10),
-
-              Expanded(                                             // description (scrollable)
-                child: results.isEmpty
-                    ? const Center(
-                        child: Text("No descriptions found."),
-                      )
-                    : ListView.builder(
-                        itemCount: results.length,
-                        itemBuilder: (context, index) {
-                          final item = results[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['title'] ?? "Untitled",
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item['snippet'] ?? "",
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                                if (item['url'] != null) ...[
-                                  const SizedBox(height: 4),
-                                  GestureDetector(
-                                    onTap: () => launchUrl(Uri.parse(item['url']!)),
-                                    child: Text(
-                                      item['url']!,
-                                      style: const TextStyle(
-                                        color: Colors.blue,
-                                        decoration: TextDecoration.underline,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                const Divider(height: 20),
-                              ],
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                constraints: const BoxConstraints(maxHeight: 500),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              "Wine Descriptions   ||",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          );
-                        },
+                            const SizedBox(width: 19),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                fixedSize: const Size(180, 28),
+                              ),
+                              icon:
+                                  const Icon(Icons.edit_document, size: 18),
+                              label: const Text("Generate Summary"),
+                              onPressed: isSummaryLoading
+                                  ? null
+                                  : () async {
+                                      setStateDialog(() {
+                                        isSummaryLoading = true;
+                                      });
+
+                                      try {
+                                        final result = await fetchSummary();
+                                        setStateDialog(() {
+                                          summaryText =
+                                              result["summary"] as String?;
+                                          summaryApproved =
+                                              result["approved"] as bool?;
+                                        });
+                                      } catch (e) {
+                                        debugPrint(
+                                            "Error fetching summary: $e");
+                                      } finally {
+                                        setStateDialog(() {
+                                          isSummaryLoading = false;
+                                        });
+                                      }
+                                    },
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    if (isSummaryLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
                       ),
+
+                    if (summaryText != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            summaryApproved == true
+                                ? Icons.check_circle
+                                : Icons.error,
+                            size: 18,
+                            color: summaryApproved == true
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            summaryApproved == true
+                                ? "AI Summary:"
+                                : "There was an issue with the summary - Please try Again!",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: summaryApproved == true
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        summaryText!,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+
+                      const Divider(height: 24),
+                    ],
+
+                    // Normal descriptions list
+                    Expanded(
+                      child: results.isEmpty
+                          ? const Center(
+                              child: Text("No descriptions found."),
+                            )
+                          : ListView.builder(
+                              itemCount: results.length,
+                              itemBuilder: (context, index) {
+                                final item = results[index];
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.only(bottom: 16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item['title'] ?? "Untitled",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        item['snippet'] ?? "",
+                                        style:
+                                            const TextStyle(fontSize: 14),
+                                      ),
+                                      if (item['url'] != null) ...[
+                                        const SizedBox(height: 4),
+                                        GestureDetector(
+                                          onTap: () => launchUrl(
+                                            Uri.parse(item['url']!),
+                                          ),
+                                          child: Text(
+                                            item['url']!,
+                                            style: const TextStyle(
+                                              color: Colors.blue,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      const Divider(height: 20),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 }
+
 
 
 // flutter devices
