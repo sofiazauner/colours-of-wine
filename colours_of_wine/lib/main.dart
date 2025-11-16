@@ -17,8 +17,8 @@ import 'package:intl/intl.dart';                                              //
 
 
 // URL for our cloud functions. Uncomment the second for testing, first for production.
-// final baseURL = "https://us-central1-colours-of-wine.cloudfunctions.net";
- final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
+final baseURL = "https://us-central1-colours-of-wine.cloudfunctions.net";
+// final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
 
 
 // runs app
@@ -202,17 +202,15 @@ class StoredWine {
 
 // web search result structure
 class WineWebResult {
-  final List<Map<String, String>> sources;
-  final String? summary;
-  final bool? summaryApproved;
-  final String? summaryFeedback;
+  final String summary;
+  final bool approved;
+  final Image image;
 
-  WineWebResult({
-    required this.sources,
+  WineWebResult(
     this.summary,
-    this.summaryApproved,
-    this.summaryFeedback,
-  });
+    this.approved,
+    this.image
+  );
 }
 
 // wine data structure
@@ -715,12 +713,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
         throw Exception("Failed to fetch summary (${response.statusCode})");
       }
 
-      final data = jsonDecode(response.body);
-    
-      return {
-        "summary": data["summary"],
-        "approved": data["approved"],
-      };
+      return jsonDecode(response.body);
     } catch (e) {
       debugPrint("Error while fetching summary: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1208,13 +1201,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
       context: context,
       builder: (context) {
         bool isSummaryLoading = false;
-        String? summaryText;
-        bool? summaryApproved;
-        String? summaryFeedback;
-
-        // NEW: local image state
-        bool isImageLoading = false;
-        String? generatedImageBase64;
+        WineWebResult? webResult = null;
 
         return StatefulBuilder(
           builder: (context, setStateDialog) {
@@ -1225,7 +1212,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
               ),
               child: Container(
                 padding: const EdgeInsets.all(16),
-                constraints: const BoxConstraints(maxHeight: 500),
+                constraints: const BoxConstraints(maxHeight: 600),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1260,10 +1247,11 @@ class _WineScannerPageState extends State<WineScannerPage> {
                                       try {
                                         final result = await fetchSummary();
                                         setStateDialog(() {
-                                          summaryText =
-                                              result["summary"] as String?;
-                                          summaryApproved =
-                                              result["approved"] as bool?;
+                                          final summary = result["summary"] as String;
+                                          final approved = result["approved"] as bool;
+                                          final imageString = result["image"] as String;
+                                          final image = Image.memory(base64Decode(imageString));
+                                          webResult = WineWebResult(summary!, approved!, image);
                                         });
                                       } catch (e) {
                                         debugPrint(
@@ -1294,28 +1282,29 @@ class _WineScannerPageState extends State<WineScannerPage> {
                         ),
                       ),
 
-                    if (summaryText != null) ...[
+                    if (webResult != null) ...[
+                      webResult!.image,
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Icon(
-                            summaryApproved == true
+                            webResult!.approved
                                 ? Icons.check_circle
                                 : Icons.error,
                             size: 18,
-                            color: summaryApproved == true
+                            color: webResult!.approved
                                 ? Colors.green
                                 : Colors.red,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            summaryApproved == true
+                            webResult!.approved
                                 ? "AI Summary:"
                                 : "There was an issue with the summary - Please try Again!",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: summaryApproved == true
+                              color: webResult!.approved
                                   ? Colors.green
                                   : Colors.red,
                             ),
@@ -1324,7 +1313,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        summaryText!,
+                        webResult!.summary,
                         style: const TextStyle(fontSize: 14),
                       ),
 

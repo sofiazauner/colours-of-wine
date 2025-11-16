@@ -7,8 +7,8 @@ import {parseMultipart, getMultipartBoundary} from "@remix-run/multipart-parser/
 import {GoogleGenAI} from "@google/genai";
 import admin from "firebase-admin";
 import {getFirestore} from "firebase-admin/firestore";
-import * as fs from "node:fs";
-
+import {createCanvas, loadImage} from 'canvas';
+import {convert, resolve, utils} from '@asamuzakjp/css-color';
 
 
 /* maximum number of containers that can be running at the same time */
@@ -78,7 +78,7 @@ export const callGemini = onRequest(async (req, res) => {
   }
   let front, back, token;
   const boundary = getMultipartBoundary(req.get('content-type'));
-  for await (let part of parseMultipart(req.rawBody, {boundary: boundary})) {
+  for await (const part of parseMultipart(req.rawBody, {boundary: boundary})) {
     switch (part.name) {
     case 'front':
       front = Buffer.from(part.arrayBuffer).toString('base64');
@@ -113,7 +113,6 @@ export const callGemini = onRequest(async (req, res) => {
   // send normalized JSON
   return res.status(200).send(JSON.stringify(obj));
 });
-
 
 
 
@@ -225,25 +224,32 @@ export const generateSummary = onRequest(async (req, res) => {
     return res.status(500).send("Failed to parse SERP response");
   }
   // generate summary using Gemini (with feedback loop)
-  let summaryResult;
+  let result;
   try {
-    summaryResult = await buildValidatedSummaryFromSerp(serpObj);
+    result = await buildValidatedSummaryFromSerp(serpObj);
   } catch (e) {
     logger.error("Summary pipeline failed", { error: e });
     return res.status(500).send("Summary pipeline failed");
   }
 
-   const responsePayload = {
-    summary: summaryResult ? summaryResult.summary : null,
-    approved: summaryResult ? summaryResult.approved : null,
-  };
+  const colors = await generateImageColors(result.summary);
+  const image = await generateImage(colors);
 
-  return res.status(200).send(JSON.stringify(responsePayload));
+  /* TODO this ought to be multipart, transporting JPEG as base64 is a joke */
+  result.image = image.toString('base64');
+
+  return res.status(200).send(JSON.stringify(result));
 });
 
 
 /* loop of Writer and Reviewer until approved or max iterations reached */
-async function buildValidatedSummaryFromSerp(serpObj, maxIterations = 25) {
+ 
+/* TODO: waiting for a single iteration is tens of seconds of pain and
+ * suffering, 2 is already a stretch.  The original value was 25, but after
+ * 25 iterations even the Buddha himself will uninstall the app.
+ */
+const MaxIterations = 3;
+async function buildValidatedSummaryFromSerp(serpObj) {
   const descriptions = await extractDescriptionsFromSerp(serpObj);
 
   if (descriptions.length === 0) {
@@ -251,15 +257,18 @@ async function buildValidatedSummaryFromSerp(serpObj, maxIterations = 25) {
   }
 
   let summary = await runWriterModel(descriptions);
+  console.log("runReviewerModel");
   let review = await runReviewerModel(descriptions, summary);
   let prevSummary;
   let iteration = 1;
 
-  while (!review.approved && iteration < maxIterations) {
+  console.log("ok?", review.approved);
+  while (!review.approved && iteration < MaxIterations) {
     prevSummary = summary;
     summary = await runWriterModel(descriptions, review.feedback, prevSummary);
     review = await runReviewerModel(descriptions, summary);
     iteration++;
+    console.log(`rainforest ${iteration}`);
   }
 
   return {summary, approved: review.approved};
@@ -269,27 +278,26 @@ async function buildValidatedSummaryFromSerp(serpObj, maxIterations = 25) {
 async function runWriterModel(descriptions, feedback, prevSummary) {
   const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
   const prompt = `
-  Du bist ein Weinexperte und Profi darin, gute, akkurate Weinbeschreibungen zu erstellen.
+Du bist ein Weinexperte und Profi darin, gute, akkurate Weinbeschreibungen zu erstellen.
 
-  Hier sind mehrere Beschreibungen eines Weins aus dem Internet:${sourcesText}
-  ${prevSummary? `Hier ist der vorheriger Draft der erstellten Zusammenfassung dieser Weine:\n${prevSummary}\n` : ""}
-  ${feedback? `Hier hast du Feedback von einer Qualitätskontrolle-KI, das du zur Verbesserung des vorherigen drafts nutzen sollst:\n${feedback}\n` : ""}
+Hier sind mehrere Beschreibungen eines Weins aus dem Internet:${sourcesText}
+${prevSummary? `Hier ist der vorheriger Draft der erstellten Zusammenfassung dieser Weine:\n${prevSummary}\n` : ""}
+${feedback? `Hier hast du Feedback von einer Qualitätskontrolle-KI, das du zur Verbesserung des vorherigen drafts nutzen sollst:\n${feedback}\n` : ""}
 
-  Deine Aufgabe ist es, eine einheitliche, konsistente Zusammenfassung der bereitgestellten Weinbeschreibungen zu erstellen.
+Deine Aufgabe ist es, eine einheitliche, konsistente Zusammenfassung der bereitgestellten Weinbeschreibungen zu erstellen.
 
-  Wähle Formulierung und Länge so, wie du es für am besten hältst.
+Wähle Formulierung und Länge so, wie du es für am besten hältst.
 
-  WICHTIG:
-  - Fasse die wichtigsten Infos zusammen (Stil, Aroma, Herkunft, Charakter, Mineralik/Süße, Komplexität, Holzeinsatz/Ausbaustil, Intensität, Säure, Fruchtcharacter, Nicht-Frucht Komponenten).
-  - Nutze die bereitgestellten Quellen als einzige Informationsquelle.
-  - Erfinde keine Fakten, die in den Quellen nicht zumindest implizit angelegt sind.
-  - Schreibe neutral und informativ.
-  - Deine Ausgabe MUSS ausschließlich im folgenden JSON-Format sein:
+WICHTIG:
+- Fasse die wichtigsten Infos zusammen (Stil, Aroma, Herkunft, Charakter, Mineralik/Süße, Komplexität, Holzeinsatz/Ausbaustil, Intensität, Säure, Fruchtcharacter, Nicht-Frucht Komponenten).
+- Nutze die bereitgestellten Quellen als einzige Informationsquelle.
+- Erfinde keine Fakten, die in den Quellen nicht zumindest implizit angelegt sind.
+- Schreibe neutral und informativ.
+- Deine Ausgabe MUSS ausschließlich im folgenden JSON-Format sein:
 
-  {
-    "summary": "DEINE ZUSAMMENFASSUNG HIER"
-  }
-  `;
+{
+  "summary": "DEINE ZUSAMMENFASSUNG HIER"
+}`;
 
   const response = await ai.models.generateContent({
     model: GeminiModel,
@@ -315,31 +323,30 @@ async function runWriterModel(descriptions, feedback, prevSummary) {
 async function runReviewerModel(descriptions, summary) {
   const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
   const prompt = `
-  Du bist eine unabhängige Qualitätskontrolle-KI für Weinzusammenfassungen.
+Du bist eine unabhängige Qualitätskontrolle-KI für Weinzusammenfassungen.
 
-  Hier sind die Quellen der Ursprungsbeschreibungen (Beschreibungen aus dem Web):${sourcesText}
+Hier sind die Quellen der Ursprungsbeschreibungen (Beschreibungen aus dem Web):${sourcesText}
 
-  Hier ist die Zusammenfassung, die überprüft werden soll:"${summary}"
+Hier ist die Zusammenfassung, die überprüft werden soll:"${summary}"
 
-  Deine Aufgabe:
-  - Prüfe, ob die Zusammenfassung die Kernaussagen der Quellen korrekt und vollständig widerspiegelt.
-  - Prüfe, ob nichts grob Falsches erfunden wurde.
-  - Prüfe, ob die Zusammenfassung ausreichend informativ ist.
-  - Prüfe, ob die Zusammenfassung aussagekräftig und ansprechend formuliert ist.
-  - Prüfe, ob der Zusammenfassung wichtige Details fehlen.
-  - Prüfe, ob Stil und Klarheit für eine Weinbeschreibung geeignet sind.
-  - Gib konstruktives Feedback zur Verbesserung der Zusammenfassung, falls nötig.
+Deine Aufgabe:
+- Prüfe, ob die Zusammenfassung die Kernaussagen der Quellen korrekt und vollständig widerspiegelt.
+- Prüfe, ob nichts grob Falsches erfunden wurde.
+- Prüfe, ob die Zusammenfassung ausreichend informativ ist.
+- Prüfe, ob die Zusammenfassung aussagekräftig und ansprechend formuliert ist.
+- Prüfe, ob der Zusammenfassung wichtige Details fehlen.
+- Prüfe, ob Stil und Klarheit für eine Weinbeschreibung geeignet sind.
+- Gib konstruktives Feedback zur Verbesserung der Zusammenfassung, falls nötig.
 
-  WICHTIG:
-  - Wenn die Zusammenfassung in Ordnung ist, stimme zu.
-  - Wenn die Zusammenfassung Mängel aufweist, lehne ab und gib konkretes Feedback zur Verbesserung.
-  -  Deine Ausgabe MUSS ausschließlich im folgenden JSON-Format sein:
+WICHTIG:
+- Wenn die Zusammenfassung in Ordnung ist, stimme zu.
+- Wenn die Zusammenfassung Mängel aufweist, lehne ab und gib konkretes Feedback zur Verbesserung.
+-  Deine Ausgabe MUSS ausschließlich im folgenden JSON-Format sein:
 
-  {
-    "approved": true/false,
-    "feedback": "Kurze Begründung + konkretes Feedback zur Verbesserung, falls (approved == false)"
-  }
-  `;
+{
+  "approved": true/false,
+  "feedback": "Kurze Begründung + konkretes Feedback zur Verbesserung, falls (approved == false)"
+}`;
 
   const response = await ai.models.generateContent({
     model: GeminiModel,
@@ -362,7 +369,6 @@ async function runReviewerModel(descriptions, summary) {
 
 
 
-
 /* Extracts descriptions from serp response */
 //(TODO: No only uses snippets, need to find way to use whole descriptions (AI od web scraping?))
 // --> Therefore summaries also not really good yet ++ Database also only stores snippets so far
@@ -380,13 +386,69 @@ function extractDescriptionsFromSerp(serpObj) {
 }
 
 
-
-
 /* Generate Image */
-//(TODO: I don't know if the Problem was with the gemini-vesion or access level, need to fix it still)
+const ImageColorMap = [
+  ["Holzeinsatz", "FARBE FÜR HOLZEINSATZ/AUSBAUSTIL"],
+  ["Mousseux", "FARBE FÜR MOUSSEUX"],
+  ["Säure", "FARBE FÜR SÄURE"],
+  ["Fruchtcharacter", "FARBE FÜR FRUCHTCHARACTER"],
+  ["Nicht-Frucht-Komponenten", "FARBE FÜR NICHT-FRUCHT-KOMPONENTEN"],
+  ["Körper", "FARBE FÜR KÖRPER/BALANCE"],
+  ["Tannin", "FARBE FÜR TANNIN"],
+  ["Reifearomen", "FARBE FÜR REIFEAROMEN"],
+];
+const ImageColorSchema = (function() {
+  const schema = {};
+  for (const [name, desc] of ImageColorMap)
+    schema[name] = desc;
+  return JSON.stringify(schema, null, "  ");
+})();
 
+async function generateImageColors(wineSummary) {
+  /* Get an array of image colors.
+   * TODO: this is ridiculously slow.
+   * Why not do it in the same step as the summary??
+   */
+  const prompt = `
+Du bist ein Wein- und Farbassoziationsexperte.
+Ich gebe dir eine Weinbeschreibung und du gibst eine Liste von ENGLISCHEN CSS-Farben im folgenden JSON-FORMAT zurück:
 
+${ImageColorSchema}
 
+WICHTIG: die Farben müssen gültige CSS-Farben sein.  Eine Liste der gültigen CSS-Farben ist wie folgt:
+aliceblue, antiquewhite, aqua, aquamarine, azure, beige, bisque, black, blanchedalmond, blue, blueviolet, brown, burlywood, cadetblue, chartreuse, chocolate, coral, cornflowerblue, cornsilk, crimson, cyan, darkblue, darkcyan, darkgoldenrod, darkgray, darkgreen, darkgrey, darkkhaki, darkmagenta, darkolivegreen, darkorange, darkorchid, darkred, darksalmon, darkseagreen, darkslateblue, darkslategray, darkslategrey, darkturquoise, darkviolet, deeppink, deepskyblue, dimgray, dimgrey, dodgerblue, firebrick, floralwhite, forestgreen, fuchsia, gainsboro, ghostwhite, gold, goldenrod, gray, green, greenyellow, grey, honeydew, hotpink, indianred, indigo, ivory, khaki, lavender, lavenderblush, lawngreen, lemonchiffon, lightblue, lightcoral, lightcyan, lightgoldenrodyellow, lightgray, lightgreen, lightgrey, lightpink, lightsalmon, lightseagreen, lightskyblue, lightslategray, lightslategrey, lightsteelblue, lightyellow, lime, limegreen, linen, magenta, maroon, mediumaquamarine, mediumblue, mediumorchid, mediumpurple, mediumseagreen, mediumslateblue, mediumspringgreen, mediumturquoise, mediumvioletred, midnightblue, mintcream, mistyrose, moccasin, navajowhite, navy, oldlace, olive, olivedrab, orange, orangered, orchid, palegoldenrod, palegreen, paleturquoise, palevioletred, papayawhip, peachpuff, peru, pink, plum, powderblue, purple, rebeccapurple, red, rosybrown, royalblue, saddlebrown, salmon, sandybrown, seagreen, seashell, sienna, silver, skyblue, slateblue, slategray, slategrey, snow, springgreen, steelblue, tan, teal, thistle, tomato, turquoise, violet, wheat, white, whitesmoke, yellow, yellowgreen
+
+Die Weinbeschreibung = ${wineSummary}`;
+
+  const response = await ai.models.generateContent({
+    model: GeminiModel,
+    contents: [{ text: prompt }],
+  });
+  const text = response.text ?? response.response?.text?.();
+  const jsonStart = text.indexOf("{");
+  const jsonEnd = text.lastIndexOf("}") + 1;
+  const jsonString = text.substring(jsonStart, jsonEnd);
+
+  return JSON.parse(jsonString);
+}
+
+async function generateImage(colors) {
+  /* ref. https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/createRadialGradient
+   * I know, I'm a sham, I just copied out the same code that ChatGPT is
+   * copying from MDN in the background.
+   */
+  const canvas = createCanvas(200, 200)
+  const ctx = canvas.getContext('2d')
+  const gradient = ctx.createRadialGradient(100, 100, 30, 100, 100, 100);
+  const len = ImageColorMap.length;
+  for (let i = 0, len = ImageColorMap.length; i < len; i++) {
+    const color = colors[ImageColorMap[i][0]];
+    gradient.addColorStop(i / (len - 1), convert.colorToHex(color));
+  }
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 400, 400);
+  return canvas.toBuffer("image/jpeg");
+};
 
 /* Handle previous searches */
 
@@ -413,7 +475,6 @@ export const searchHistory = onRequest(async (req, res) => {
       createdAt: data.createdAt ? data.createdAt.toMillis() : null,
     });
   });
-  console.log("userHistory", docs);
   return res.status(200).send(JSON.stringify(docs));
 });
 
@@ -449,7 +510,6 @@ export const deleteSearch = onRequest(async (req, res) => {
   await docRef.delete();
   return res.status(200).send("Deleted");
 });
-
 
 
 
