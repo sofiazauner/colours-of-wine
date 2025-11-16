@@ -115,7 +115,6 @@ export const callGemini = onRequest(async (req, res) => {
 });
 
 
-
 /*SerpApi Functions -->*/
 const serpApiKey = "ec05db9a150499c3e869cb95e63a146a5b1dce6257c1042bf89c340bf2c22d1a";   // SerpApi key
 
@@ -224,20 +223,13 @@ export const generateSummary = onRequest(async (req, res) => {
     return res.status(500).send("Failed to parse SERP response");
   }
   // generate summary using Gemini (with feedback loop)
-  let result;
-  try {
-    result = await buildValidatedSummaryFromSerp(serpObj);
-  } catch (e) {
-    logger.error("Summary pipeline failed", { error: e });
-    return res.status(500).send("Summary pipeline failed");
-  }
+  const result = await buildValidatedSummaryFromSerp(serpObj);
 
   const colors = await generateImageColors(result.summary);
   const image = await generateImage(colors);
 
   /* TODO this ought to be multipart, transporting JPEG as base64 is a joke */
   result.image = image.toString('base64');
-
   return res.status(200).send(JSON.stringify(result));
 });
 
@@ -256,20 +248,20 @@ async function buildValidatedSummaryFromSerp(serpObj) {
     throw new Error("No descriptions available from SERP to summarize");
   }
 
+  const start = new Date();
   let summary = await runWriterModel(descriptions);
-  console.log("runReviewerModel");
   let review = await runReviewerModel(descriptions, summary);
   let prevSummary;
   let iteration = 1;
 
-  console.log("ok?", review.approved);
   while (!review.approved && iteration < MaxIterations) {
     prevSummary = summary;
     summary = await runWriterModel(descriptions, review.feedback, prevSummary);
     review = await runReviewerModel(descriptions, summary);
     iteration++;
-    console.log(`rainforest ${iteration}`);
   }
+  const end = new Date();
+  logger.info(`Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`);
 
   return {summary, approved: review.approved};
 }
@@ -498,7 +490,7 @@ export const deleteSearch = onRequest(async (req, res) => {
     return res.status(401).send("Wrong token");
   }
 
-   const uid = user.uid;
+  const uid = user.uid;
 
   const docRef = searchCollection.doc(id);
   const docSnap = await docRef.get();
