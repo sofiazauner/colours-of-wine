@@ -11,7 +11,7 @@ import {createCanvas, loadImage} from 'canvas';
 import {convert, resolve, utils} from '@asamuzakjp/css-color';
 
 
-/* maximum number of containers that can be running at the same time */
+//maximum number of containers that can be running at the same time
 setGlobalOptions({ maxInstances: 10 });
 
 admin.initializeApp();
@@ -19,9 +19,10 @@ const db = getFirestore("wine-data");
 const searchCollection = db.collection("/search-history");
 
 
+
 /* Extract Data from label-images using Gemini.*/
 // Parameters for labelextraction
-const GeminiModel = "gemini-2.5-flash";
+const GeminiModel = "gemini-2.5-flash-lite";
 const GeminiURL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GeminiModel}:generateContent`;
 const GeminiAPIKey = "AIzaSyC_u49bnxvaObp-2vVXSc0TvSLgQWqyT7c";
@@ -115,10 +116,11 @@ export const callGemini = onRequest(async (req, res) => {
 });
 
 
+
 /*SerpApi Functions -->*/
 const serpApiKey = "ec05db9a150499c3e869cb95e63a146a5b1dce6257c1042bf89c340bf2c22d1a";   // SerpApi key
 
-/* 1.) Look up wine descriptions in the SERP API. */
+// 1.) Look up wine descriptions in the SERP API.
 export const fetchDescriptions = onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   // check parameters
@@ -186,7 +188,9 @@ export const fetchDescriptions = onRequest(async (req, res) => {
 
 
 
-/* 2.) Generate summary (get descriptions with Serp and summarize with Gemini)*/
+// 2.) Generate summary (get descriptions with Serp and summarize with Gemini)
+// (TODO: Don't search for descriptions again, use the onse already fetched above!)
+// --> Maybe merge the functions; get descriptions and summarize(+image) at the same time?
 export const generateSummary = onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   // check parameters
@@ -224,11 +228,11 @@ export const generateSummary = onRequest(async (req, res) => {
   }
   // generate summary using Gemini (with feedback loop)
   const result = await buildValidatedSummaryFromSerp(serpObj);
-
+  // generate image based on summary
   const colors = await generateImageColors(result.summary);
   const image = await generateImage(colors);
 
-  /* TODO this ought to be multipart, transporting JPEG as base64 is a joke */
+  //(TODO: this ought to be multipart, transporting JPEG as base64 is a joke!)
   result.image = image.toString('base64');
   return res.status(200).send(JSON.stringify(result));
 });
@@ -236,11 +240,14 @@ export const generateSummary = onRequest(async (req, res) => {
 
 /* loop of Writer and Reviewer until approved or max iterations reached */
  
-/* TODO: waiting for a single iteration is tens of seconds of pain and
- * suffering, 2 is already a stretch.  The original value was 25, but after
- * 25 iterations even the Buddha himself will uninstall the app.
- */
-const MaxIterations = 3;
+// (TODO: waiting for a single iteration is tens of seconds of pain and
+// suffering, 2 is already a stretch.  The original value was 25, but after
+// 25 iterations even the Buddha himself will uninstall the app!)
+// ^^^ above applies to flash, but that doesn't always work in the first
+// * place.  Turns out flash lite does the thing in 4s with 2 iters.  Still
+// * unclear what the ideal number is, extrapolating from the above 5 iters
+// * are already 10s which feels annoying enough
+const MaxIterations = 5;
 async function buildValidatedSummaryFromSerp(serpObj) {
   const descriptions = await extractDescriptionsFromSerp(serpObj);
 
@@ -310,7 +317,6 @@ WICHTIG:
   return obj.summary;
 }
 
-
 /*Reviewer-AI: reviews Summary and provides feedback*/
 async function runReviewerModel(descriptions, summary) {
   const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
@@ -362,10 +368,8 @@ WICHTIG:
 
 
 /* Extracts descriptions from serp response */
-//(TODO: No only uses snippets, need to find way to use whole descriptions (AI od web scraping?))
-// --> Therefore summaries also not really good yet ++ Database also only stores snippets so far
-
-/* Extracts descripiond from serp response*/ 
+//(TODO: No only uses snippets, need to find way to use whole descriptions (AI or web scraping?))
+// --> Therefore summaries/pic also not really good yet ++ Database also only stores snippets so far
 function extractDescriptionsFromSerp(serpObj) { 
   const descriptions = []; 
   if (serpObj.organic_results && Array.isArray(serpObj.organic_results)) 
@@ -376,6 +380,7 @@ function extractDescriptionsFromSerp(serpObj) {
     } 
   return descriptions; 
 }
+
 
 
 /* Generate Image */
@@ -396,10 +401,12 @@ const ImageColorSchema = (function() {
   return JSON.stringify(schema, null, "  ");
 })();
 
+// user Gemini to generate image colors from summary
 async function generateImageColors(wineSummary) {
   /* Get an array of image colors.
    * TODO: this is ridiculously slow.
    * Why not do it in the same step as the summary??
+   * TODO: Generate sidebars (I think Anja asked for Mineralik/Süße) -- maybe also with canva?
    */
   const prompt = `
 Du bist ein Wein- und Farbassoziationsexperte.
@@ -441,6 +448,8 @@ async function generateImage(colors) {
   ctx.fillRect(0, 0, 400, 400);
   return canvas.toBuffer("image/jpeg");
 };
+
+
 
 /* Handle previous searches */
 

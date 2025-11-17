@@ -17,8 +17,8 @@ import 'package:intl/intl.dart';                                              //
 
 
 // URL for our cloud functions. Uncomment the second for testing, first for production.
-final baseURL = "https://us-central1-colours-of-wine.cloudfunctions.net";
-// final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
+// final baseURL = "https://us-central1-colours-of-wine.cloudfunctions.net";
+final baseURL = "http://localhost:5001/colours-of-wine/us-central1";
 
 
 // runs app
@@ -728,12 +728,6 @@ class _WineScannerPageState extends State<WineScannerPage> {
 
 
 
-// Logic for generating images with Gemini -->
-//(TODO: !!)
-
-
-
-
 // Logic for previous search database -->
 
   // find previous searches
@@ -1232,11 +1226,12 @@ class _WineScannerPageState extends State<WineScannerPage> {
                             const SizedBox(width: 19),
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                fixedSize: const Size(180, 28),
+                                fixedSize: const Size(250, 28),
                               ),
                               icon:
                                   const Icon(Icons.edit_document, size: 18),
-                              label: const Text("Generate Summary"),
+                              label: const Text("Generate Summary + Image",      // main purpose of the app
+                                  style: TextStyle(fontSize: 14)),
                               onPressed: isSummaryLoading
                                   ? null
                                   : () async {
