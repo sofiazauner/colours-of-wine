@@ -64,7 +64,7 @@ async function labelUserImages(front, back) {
 
 // analysis process (uses the extraction process)
 export const callGemini = onRequest(async (req, res) => {
-  /* allow CORS (for testing mainly) */
+  // allow CORS (for testing mainly)
   res.set('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') {
     res.set('Access-Control-Allow-Methods', 'GET');
@@ -237,17 +237,15 @@ export const generateSummary = onRequest(async (req, res) => {
   return res.status(200).send(JSON.stringify(result));
 });
 
-
 /* loop of Writer and Reviewer until approved or max iterations reached */
  
-/* TODO: waiting for a single iteration takes tens of seconds, 2 is already
-* a stretch.  The original value was 25, but after 25 iterations even the
- * Buddha himself will uninstall the app.
- * ^^^ above applies to flash, but that doesn't always work in the first
- * place.  Turns out flash lite does the thing in 4s with 2 iters.  Still
- * unclear what the ideal number is, extrapolating from the above 5 iters
- * are already 10s which feels annoying enough.
- */
+// (TODO: waiting for a single iteration takes tens of seconds, 2 is already
+// a stretch.  The original value was 25, but after 25 iterations even the
+// Buddha himself will uninstall the app.)
+// ^^^ above applies to flash, but that doesn't always work in the first
+// place.  Turns out flash lite does the thing in 4s with 2 iters.  Still
+// unclear what the ideal number is, extrapolating from the above 5 iters
+// are already 10s which feels annoying enough.
 const MaxIterations = 5;
 async function buildValidatedSummaryFromSerp(serpObj) {
   const descriptions = await extractDescriptionsFromSerp(serpObj);
@@ -404,11 +402,10 @@ const ImageColorSchema = (function() {
 
 // user Gemini to generate image colors from summary
 async function generateImageColors(wineSummary) {
-  /* Get an array of image colors.
-   * TODO: this is ridiculously slow.
-   * Why not do it in the same step as the summary??
-   * TODO: Generate sidebars (I think Anja asked for Mineralik/Süße) -- maybe also with canva?
-   */
+  // Get an array of image colors.
+  // TODO: this is ridiculously slow.
+  // Why not do it in the same step as the summary??
+  // TODO: Generate sidebars (I think Anja asked for Mineralik/Süße) -- maybe also with canva?
   const prompt = `
 Du bist ein Wein- und Farbassoziationsexperte.
 Ich gebe dir eine Weinbeschreibung und du gibst eine Liste von ENGLISCHEN CSS-Farben im folgenden JSON-FORMAT zurück:
@@ -433,10 +430,9 @@ Die Weinbeschreibung = ${wineSummary}`;
 }
 
 async function generateImage(colors) {
-  /* ref. https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/createRadialGradient
-   * I know, I'm a sham, I just copied out the same code that ChatGPT is
-   * copying from MDN in the background.
-   */
+  // ref. https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/createRadialGradient
+  // I know, I'm a sham, I just copied out the same code that ChatGPT is
+  // copying from MDN in the background.
   const canvas = createCanvas(200, 200)
   const ctx = canvas.getContext('2d')
   const gradient = ctx.createRadialGradient(100, 100, 30, 100, 100, 100);
