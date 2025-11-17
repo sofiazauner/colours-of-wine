@@ -21,7 +21,7 @@ const searchCollection = db.collection("/search-history");
 
 /* Extract Data from label-images using Gemini.*/
 // Parameters for labelextraction
-const GeminiModel = "gemini-2.5-flash";
+const GeminiModel = "gemini-2.5-flash-lite";
 const GeminiURL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GeminiModel}:generateContent`;
 const GeminiAPIKey = "AIzaSyC_u49bnxvaObp-2vVXSc0TvSLgQWqyT7c";
@@ -236,11 +236,15 @@ export const generateSummary = onRequest(async (req, res) => {
 
 /* loop of Writer and Reviewer until approved or max iterations reached */
  
-/* TODO: waiting for a single iteration is tens of seconds of pain and
- * suffering, 2 is already a stretch.  The original value was 25, but after
- * 25 iterations even the Buddha himself will uninstall the app.
+/* TODO: waiting for a single iteration takes tens of seconds, 2 is already
+* a stretch.  The original value was 25, but after 25 iterations even the
+ * Buddha himself will uninstall the app.
+ * ^^^ above applies to flash, but that doesn't always work in the first
+ * place.  Turns out flash lite does the thing in 4s with 2 iters.  Still
+ * unclear what the ideal number is, extrapolating from the above 5 iters
+ * are already 10s which feels annoying enough.
  */
-const MaxIterations = 3;
+const MaxIterations = 5;
 async function buildValidatedSummaryFromSerp(serpObj) {
   const descriptions = await extractDescriptionsFromSerp(serpObj);
 
