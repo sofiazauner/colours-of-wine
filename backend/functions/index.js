@@ -438,7 +438,7 @@ async function generateImage(colors) {
     gradient.addColorStop(i / (len - 1), convert.colorToHex(color));
   }
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 400, 400);
+  ctx.fillRect(0, 0, 200, 200);
   return canvas.toBuffer("image/jpeg");
 };
 
