@@ -1,0 +1,98 @@
+/* data extraction from wine labels */
+
+import { onRequest } from "firebase-functions/https";
+import logger from "firebase-functions/logger";
+import { parseMultipart, getMultipartBoundary } from "@remix-run/multipart-parser/node";
+import { ai, GeminiModel, admin } from "./config.js";
+
+
+// parameters for labelextraction
+const GeminiLabelImagesPrompt = `
+Du bist Experte für Weine und ihre Etiketten.
+Analysiere die folgenden Weinetiketten (VORDER- UND RÜCKSEITE) gründlich.
+Extrahiere und gebe die gesuchten Informationen im folgenden JSON-FORMAT zurück:
+{
+  "Name": "",
+  "Winery": "",
+  "Vintage": "",
+  "Grape Variety": "",
+  "Vineyard Location": "",
+  "Country": ""
+}
+
+Versuche alle daten KORREKT herauszufinden.
+Wenn eine Information NICHT angegeben ist, lasse das Feld LEER!
+`;
+
+
+// extraction Process
+async function labelUserImages(front, back) {
+  const contents = [
+    { text: GeminiLabelImagesPrompt },
+    { inlineData: { mimeType: "image/jpeg", data: front } },
+    { inlineData: { mimeType: "image/jpeg", data: back } },
+  ];
+  const response = await ai.models.generateContent({
+    model: GeminiModel,
+    contents: contents,
+  });
+  // try to look up the JSON object inside the response in case we get some other garbage around it 
+  const jsonStart = response.text.indexOf("{");
+  const jsonEnd = response.text.lastIndexOf("}") + 1;
+  const jsonString = response.text.substring(jsonStart, jsonEnd);
+  return JSON.parse(jsonString);
+}
+
+
+// analysis process (uses the extraction process)
+export const callGemini = onRequest(async (req, res) => {
+  // allow CORS (for testing mainly)
+  res.set('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Methods', 'GET');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '3600');
+    return res.status(204).send('');
+  }
+  const contentType = req.get("Content-Type");
+  if (req.method != "POST" || !contentType) {
+    logger.info("Wrong method", {method: req.method, contentType: contentType});
+    return res.status(400).send("Wrong request");
+  }
+  let front, back, token;
+  const boundary = getMultipartBoundary(req.get('content-type'));
+  for await (const part of parseMultipart(req.rawBody, {boundary: boundary})) {
+    switch (part.name) {
+    case 'front':
+      front = Buffer.from(part.arrayBuffer).toString('base64');
+      break;
+    case 'back':
+      back = Buffer.from(part.arrayBuffer).toString('base64');
+      break;
+    case 'token':
+      token = part.text;
+      break;
+    }
+  }
+  let user;
+  try {
+    user = await admin.auth().verifyIdToken(token);
+  } catch (e) {
+    logger.info("Wrong token", {token: token, error: e});
+    return res.status(401).send("Wrong token");
+  }
+  const uid = user.uid;
+  if (!front || !back) {
+    logger.info("Wrong images", {front: !!front, back: !!back});
+    return res.status(400).send("Wrong images");
+  }
+  let obj;
+  try {
+    obj = await labelUserImages(front, back);
+  } catch (e) {
+    logger.error("Failed to label images", {error: e});
+    return res.status(500).send("Failed to call Gemini");
+  }
+  // send normalized JSON
+  return res.status(200).send(JSON.stringify(obj));
+});
