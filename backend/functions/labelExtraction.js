@@ -4,6 +4,8 @@ import { onRequest } from "firebase-functions/https";
 import logger from "firebase-functions/logger";
 import { parseMultipart, getMultipartBoundary } from "@remix-run/multipart-parser/node";
 import { ai, GeminiModel, admin } from "./config.js";
+import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 
 // parameters for labelextraction
@@ -24,6 +26,14 @@ Versuche alle daten KORREKT herauszufinden.
 Wenn eine Information NICHT angegeben ist, lasse das Feld LEER!
 `;
 
+const LabelSchema = zodToJsonSchema(z.object({
+  "Name": z.string(),
+  "Winery": z.string(),
+  "Vintage": z.string(),
+  "Grape Variety": z.string(),
+  "Vineyard Location": z.string(),
+  "Country": z.string(),
+}));
 
 // extraction Process
 async function labelUserImages(front, back) {
@@ -35,12 +45,12 @@ async function labelUserImages(front, back) {
   const response = await ai.models.generateContent({
     model: GeminiModel,
     contents: contents,
+    config: {
+      responseMimeType: "application/json",
+      responseJsonSchema: LabelSchema,
+    }
   });
-  // try to look up the JSON object inside the response in case we get some other garbage around it 
-  const jsonStart = response.text.indexOf("{");
-  const jsonEnd = response.text.lastIndexOf("}") + 1;
-  const jsonString = response.text.substring(jsonStart, jsonEnd);
-  return JSON.parse(jsonString);
+  return JSON.parse(response.text);
 }
 
 

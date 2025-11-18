@@ -5,7 +5,8 @@ import logger from "firebase-functions/logger";
 import { serpApiKey, ai, GeminiModel, admin } from "./config.js";
 import { extractDescriptionsFromSerp } from "./descriptions.js";
 import { generateImageColors, generateImage } from "./image.js";
-
+import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 // (TODO: Don't search for descriptions again, use the onse already fetched!)
 // --> Maybe merge the functions; get descriptions and summarize(+image) at the same time?
@@ -56,7 +57,6 @@ export const generateSummary = onRequest(async (req, res) => {
   result.image = image.toString('base64');
   return res.status(200).send(JSON.stringify(result));
 });
-
  
 // (TODO: waiting for a single iteration takes tens of seconds, 2 is already
 // a stretch.  The original value was 25, but after 25 iterations even the
@@ -94,6 +94,10 @@ async function buildValidatedSummaryFromSerp(serpObj) {
 }
 
 
+const WriterModelSchema = zodToJsonSchema(z.object({
+  summary: z.string(),
+}));
+
 // writer-AI: generates Summary of descriptions (+ Feedback)
 async function runWriterModel(descriptions, feedback, prevSummary) {
   const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
@@ -122,21 +126,21 @@ WICHTIG:
   const response = await ai.models.generateContent({
     model: GeminiModel,
     contents: [{ text: prompt }],
+    config: {
+      responseMimeType: "application/json",
+      responseJsonSchema: WriterModelSchema
+    }
   });
 
-  const text = response.text ?? response.response?.text?.();
-
-  const jsonStart = text.indexOf("{");
-  const jsonEnd = text.lastIndexOf("}") + 1;
-  const jsonString = text.substring(jsonStart, jsonEnd);
-
-  const obj = JSON.parse(jsonString);
-  if (!obj.summary || typeof obj.summary !== "string") {
-    throw new Error("Writer model did not return a valid summary JSON");
-  }
+  const obj = JSON.parse(response.text);
   return obj.summary;
 }
 
+
+const ReviewerModelSchema = zodToJsonSchema(z.object({
+  approved: z.boolean(),
+  summary: z.string(),
+}));
 
 // reviewer-AI: reviews Summary and provides feedback
 async function runReviewerModel(descriptions, summary) {
@@ -170,18 +174,11 @@ WICHTIG:
   const response = await ai.models.generateContent({
     model: GeminiModel,
     contents: [{ text: prompt }],
+    config: {
+      responseMimeType: "application/json",
+      responseJsonSchema: ReviewerModelSchema
+    }
   });
 
-  const text = response.text ?? response.response?.text?.();
-
-  const jsonStart = text.indexOf("{");
-  const jsonEnd = text.lastIndexOf("}") + 1;
-  const jsonString = text.substring(jsonStart, jsonEnd);
-
-  const obj = JSON.parse(jsonString);
-
-  return {
-    approved: Boolean(obj.approved),
-    feedback: typeof obj.feedback === "string" ? obj.feedback : "",
-  };
+  return JSON.parse(response.text);
 }
