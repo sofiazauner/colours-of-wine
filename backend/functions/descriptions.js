@@ -101,8 +101,8 @@ export async function extractDescriptionsFromSerp(serpObj) {
         title: item.title,
         url: item.link,
         snippet: item.snippet,
-        articleTitle: article?.title ?? null,
-        articleText: article?.textContent ?? null,
+        articleTitle: article.title,
+        articleText: article.textContent,
       });
     } catch (err) {
       console.error("Fehler bei", item.link, err);
