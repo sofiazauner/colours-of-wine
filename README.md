@@ -44,7 +44,7 @@ Sofia Zauner, Peter Balint
 
 - [ ] Keys in protected Enviornment
 - [ ] Vllt. message bei long loading-screens
-- [*] Structured JSON (Code review)
+- [x] Structured JSON (Code review)
 - [ ] Anzeige von Bild (momentan einf mit Summary unter Winecard, vllt eigenes Fenster oder so? und vllt größer)
 - [ ] Merge ai-functions (descriptions+summary+image in one go; maybe faster, definitly avoids fetching descriprions twice (Alternative zur Parameterübergabe)) (?)
 - [ ] Use Writer/Reviewer für Farbselektion (siehe vorherigen Punkt)
