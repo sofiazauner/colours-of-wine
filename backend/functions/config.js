@@ -25,3 +25,15 @@ export const ai = new GoogleGenAI({ apiKey: GeminiAPIKey });
 
 // serpAPI
 export const serpApiKey = "ec05db9a150499c3e869cb95e63a146a5b1dce6257c1042bf89c340bf2c22d1a";
+
+// images
+export const WineComponents = [
+  "Holzeinsatz",
+  "Mousseux",
+  "Säure",
+  "Fruchtcharacter",
+  "Nicht-Frucht-Komponenten",
+  "Körper",
+  "Tannin",
+  "Reifearomen",
+];

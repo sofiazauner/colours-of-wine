@@ -2,9 +2,9 @@
 
 import { onRequest } from "firebase-functions/https";
 import logger from "firebase-functions/logger";
-import { serpApiKey, ai, GeminiModel, admin } from "./config.js";
+import { serpApiKey, ai, GeminiModel, admin, WineComponents } from "./config.js";
 import { extractDescriptionsFromSerp } from "./descriptions.js";
-import { generateImageColors, generateImage } from "./image.js";
+import { generateImage } from "./image.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
@@ -49,12 +49,12 @@ export const generateSummary = onRequest(async (req, res) => {
   }
   // generate summary using Gemini (with feedback loop)
   const result = await buildValidatedSummaryFromSerp(serpObj);
-  // generate image based on summary
-  const colors = await generateImageColors(result.summary);
-  const image = await generateImage(colors);
 
-  // (TODO: this ought to be multipart, transporting JPEG as base64 is a joke!)
+  // generate image based on colors embedded into summary
+  // TODO: make this a separate endpoint so it can be loaded independently
+  const image = await generateImage(result.colors);
   result.image = image.toString('base64');
+  delete result.colors;
   return res.status(200).send(JSON.stringify(result));
 });
  
@@ -66,49 +66,81 @@ export const generateSummary = onRequest(async (req, res) => {
 // unclear what the ideal number is, extrapolating from the above 5 iters
 // are already 10s which feels annoying enough.
 
-// operate wirter/reviewer-loop
-const MaxIterations = 5;
+// operate writer/reviewer-loop
+const MaxIterationCount = 5;
 async function buildValidatedSummaryFromSerp(serpObj) {
   const descriptions = await extractDescriptionsFromSerp(serpObj);
 
-  if (descriptions.length === 0) {
-    throw new Error("No descriptions available from SERP to summarize");
-  }
+  if (descriptions.length == 0)
+    throw new TypeError("No descriptions available from SERP to summarize");
 
   const start = new Date();
-  let summary = await runWriterModel(descriptions);
-  let review = await runReviewerModel(descriptions, summary);
-  let prevSummary;
+  let obj, review, prev;
   let iteration = 1;
-
-  while (!review.approved && iteration < MaxIterations) {
-    prevSummary = summary;
-    summary = await runWriterModel(descriptions, review.feedback, prevSummary);
-    review = await runReviewerModel(descriptions, summary);
+  do {
+    prev = obj;
+    obj = await runWriterModel(descriptions, review?.feedback, prev);
+    review = await runReviewerModel(descriptions, obj);
+    logger.info("review", review);
     iteration++;
-  }
+  } while (!review.approved && iteration < MaxIterationCount);
+
   const end = new Date();
   logger.info(`Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`);
 
-  return {summary, approved: review.approved};
+  return {summary: obj.summary, colors: obj.colors, approved: review.approved};
 }
 
 
+const CSSColors = [
+  "aliceblue", "aqua", "aquamarine", "azure", "beige", "black",
+  "blanchedalmond", "blue", "blueviolet", "brown", "burlywood", "chartreuse",
+  "chocolate", "coral", "cornflowerblue", "cornsilk", "cyan", "darkblue",
+  "darkcyan", "darkgoldenrod", "darkgreen", "darkkhaki", "darkmagenta",
+  "darkolivegreen", "darkorange", "darkred", "darksalmon", "darkseagreen",
+  "darkslategray", "darkturquoise", "darkviolet", "deeppink", "deepskyblue",
+  "dimgray", "dimgrey", "dodgerblue", "firebrick", "floralwhite",
+  "forestgreen", "fuchsia", "ghostwhite", "gold", "goldenrod", "gray",
+  "green", "greenyellow", "grey", "hotpink", "indianred", "indigo",
+  "ivory", "khaki", "lavender", "lavenderblush", "lawngreen", "lightblue",
+  "lightcoral", "lightcyan", "lightgoldenrodyellow", "lightgray", "lightgreen",
+  "lightgrey", "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
+  "lightslategray", "lightslategrey", "lightsteelblue", "lightyellow",
+  "lime", "limegreen", "linen", "magenta", "mediumblue", "mediumorchid",
+  "mediumpurple", "mediumseagreen", "mediumslateblue", "mediumspringgreen",
+  "mediumturquoise", "mediumvioletred", "midnightblue", "mintcream",
+  "mistyrose", "navy", "oldlace", "olive", "olivedrab", "orange", "orangered",
+  "orchid", "palegoldenrod", "palegreen", "paleturquoise", "palevioletred",
+  "papayawhip", "peachpuff", "pink", "plum", "purple", "rebeccapurple", "red",
+  "rosybrown", "royalblue", "salmon", "sandybrown", "seagreen", "seashell",
+  "sienna", "silver", "skyblue", "slateblue", "slategray", "slategrey", "snow",
+  "springgreen", "steelblue", "tan", "teal", "thistle", "tomato", "turquoise",
+  "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen"
+];
+
 const WriterModelSchema = zodToJsonSchema(z.object({
   summary: z.string(),
+  colors: (function() {
+    const obj = {};
+    const colors = z.enum(CSSColors)
+    for (const it of WineComponents)
+      obj[it] = colors;
+    return z.object(obj);
+  })()
 }));
 
 // writer-AI: generates Summary of descriptions (+ Feedback)
-async function runWriterModel(descriptions, feedback, prevSummary) {
+async function runWriterModel(descriptions, feedback, prevObj) {
   const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
   const prompt = `
-Du bist ein Weinexperte und Profi darin, gute, akkurate Weinbeschreibungen zu erstellen.
+Du bist ein Wein- und Farbassoziationsexperte und Profi darin, gute, akkurate Weinbeschreibungen zu erstellen.
 
 Hier sind mehrere Beschreibungen eines Weins aus dem Internet:${sourcesText}
-${prevSummary? `Hier ist der vorheriger Draft der erstellten Zusammenfassung dieser Weine:\n${prevSummary}\n` : ""}
-${feedback? `Hier hast du Feedback von einer Qualitätskontrolle-KI, das du zur Verbesserung des vorherigen drafts nutzen sollst:\n${feedback}\n` : ""}
+${prevObj? `Hier ist der vorheriger Draft der erstellten Zusammenfassung und Farbassoziationen dieser Weine:\n${JSON.stringify(prevObj)}\n` : ""}
+${feedback? `Hier hast du Feedback von einer Qualitätskontrolle-KI, das du zur Verbesserung des vorherigen Drafts nutzen sollst:\n${feedback}\n` : ""}
 
 Deine Aufgabe ist es, eine einheitliche, konsistente Zusammenfassung der bereitgestellten Weinbeschreibungen zu erstellen.
+Nachdem du die Zusammenfassung erstellt hast, musst du außerdem eine Liste von ENGLISCHEN CSS-Farben erstellen.
 
 Wähle Formulierung und Länge so, wie du es für am besten hältst.
 
@@ -117,10 +149,22 @@ WICHTIG:
 - Nutze die bereitgestellten Quellen als einzige Informationsquelle.
 - Erfinde keine Fakten, die in den Quellen nicht zumindest implizit angelegt sind.
 - Schreibe neutral und informativ.
+- Gebe unbedingt die Zusammenfassung erst aus, vor dem du die Farbassoziationen erstellst. Am Ende musst du dann sowohl diese Zusammenfassung als auch die Farbassoziationen ausgeben.
+- Die Farbassoziationen sollen gültige CSS-Farben sein.
 - Deine Ausgabe MUSS ausschließlich im folgenden JSON-Format sein:
 
 {
-  "summary": "DEINE ZUSAMMENFASSUNG HIER"
+  "summary": "DEINE ZUSAMMENFASSUNG HIER",
+  "colors": {
+    "Holzeinsatz": "FARBE FÜR HOLZEINSATZ/AUSBAUSTIL",
+    "Mousseux": "FARBE FÜR MOUSSEUX",
+    "Säure": "FARBE FÜR SÄURE",
+    "Fruchtcharacter": "FARBE FÜR FRUCHTCHARACTER",
+    "Nicht-Frucht-Komponenten": "FARBE FÜR NICHT-FRUCHT-KOMPONENTEN",
+    "Körper": "FARBE FÜR KÖRPER/BALANCE",
+    "Tannin": "FARBE FÜR TANNIN",
+    "Reifearomen": "FARBE FÜR REIFEAROMEN"
+  }
 }`;
 
   const response = await ai.models.generateContent({
@@ -132,25 +176,24 @@ WICHTIG:
     }
   });
 
-  const obj = JSON.parse(response.text);
-  return obj.summary;
+  return JSON.parse(response.text);
 }
 
 
 const ReviewerModelSchema = zodToJsonSchema(z.object({
   approved: z.boolean(),
-  summary: z.string(),
+  feedback: z.string(),
 }));
 
 // reviewer-AI: reviews Summary and provides feedback
-async function runReviewerModel(descriptions, summary) {
+async function runReviewerModel(descriptions, obj) {
   const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
   const prompt = `
-Du bist eine unabhängige Qualitätskontrolle-KI für Weinzusammenfassungen.
+Du bist eine unabhängige Qualitätskontrolle-KI für Weinzusammenfassungen und Farbassoziationen.
 
 Hier sind die Quellen der Ursprungsbeschreibungen (Beschreibungen aus dem Web):${sourcesText}
 
-Hier ist die Zusammenfassung, die überprüft werden soll:"${summary}"
+Hier ist die Zusammenfassung mit Farbassoziatonen, die überprüft werden soll:"${JSON.stringify(obj)}"
 
 Deine Aufgabe:
 - Prüfe, ob die Zusammenfassung die Kernaussagen der Quellen korrekt und vollständig widerspiegelt.
@@ -159,7 +202,8 @@ Deine Aufgabe:
 - Prüfe, ob die Zusammenfassung aussagekräftig und ansprechend formuliert ist.
 - Prüfe, ob der Zusammenfassung wichtige Details fehlen.
 - Prüfe, ob Stil und Klarheit für eine Weinbeschreibung geeignet sind.
-- Gib konstruktives Feedback zur Verbesserung der Zusammenfassung, falls nötig.
+- Prüfe, ob die Farben zu den bestimmten Aspekten des Weines gut passen.
+- Gib konstruktives Feedback zur Verbesserung der Zusammenfassung und der Farben, falls nötig.
 
 WICHTIG:
 - Wenn die Zusammenfassung in Ordnung ist, stimme zu.
