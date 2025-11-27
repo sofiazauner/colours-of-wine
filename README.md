@@ -42,7 +42,7 @@ Sofia Zauner, Peter Balint
 
 ### Etc
 
-- [ ] Keys in protected Enviornment
+- [x] Keys in protected Enviornment (Google Secret Manager)
 - [ ] Vllt. message bei long loading-screens
 - [x] Structured JSON (Code review)
 - [ ] Anzeige von Bild (momentan einf mit Summary unter Winecard, vllt eigenes Fenster oder so? und vllt größer)
@@ -55,32 +55,37 @@ Sofia Zauner, Peter Balint
 
 ### 1. Architecture
 
-- [ ] 1.1 Monolithic Orchestrator File
-**Location**: `colours_of_wine/lib/orchestrator.dart` (~550 lines)
+- [ ] **1.1 Monolithic Orchestrator File**
+      
+Location:
+- `colours_of_wine/lib/orchestrator.dart` (~550 lines)
 
-**Problem**: The orchestrator file contains:
+Problem: The orchestrator file contains:
 - State management
 - UI building logic
 - Business logic
 - API calls
 - Multiple concerns mixed together
 
-**Impact**: 
+Impact: 
 - Difficult to test individual components
 - Hard to maintain and extend
 - Violates Single Responsibility Principle
 
-**Recommendation**: 
+Recommendation: 
 - Split into separate files:
   - `wine_scanner_state.dart` - State management
   - `wine_scanner_service.dart` - API service layer
   - `wine_scanner_views.dart` - UI components
   - `wine_scanner_controller.dart` - Business logic coordination
 
-- [ ] 1.2 Missing Service Layer
-**Problem**: Direct HTTP calls scattered throughout the codebase without abstraction.
+- [ ] **1.2 Missing Service Layer**
+      
+Problem:
+- Direct HTTP calls scattered throughout the codebase without abstraction.
 
-**Recommendation**: Create a service layer:
+Recommendation: 
+- Create a service layer:
 ```dart
 class WineService {
   Future<WineData> analyzeLabel(Uint8List front, Uint8List back);
@@ -91,12 +96,16 @@ class WineService {
 }
 ```
 
-- [ ] 1.3 Hardcoded Configuration
-**Location**: `colours_of_wine/lib/config.dart`
+- [ ] **1.3 Hardcoded Configuration**
+      
+Location:
+- `colours_of_wine/lib/config.dart`
 
-**Problem**: Base URL is hardcoded with commented alternatives.
+Problem: 
+- Base URL is hardcoded with commented alternatives.
 
-**Recommendation**: Use environment variables or build configurations:
+Recommendation: 
+- Use environment variables or build configurations:
 ```dart
 final baseURL = const String.fromEnvironment(
   'API_BASE_URL',
@@ -104,24 +113,29 @@ final baseURL = const String.fromEnvironment(
 );
 ```
 
----
 
 ### 2. Readability
 
-- [ ] 2.1 Mixed Language Comments
-**Problem**: Comments mix German and English inconsistently.
+- [ ] **2.1 Mixed Language Comments**
+      
+Problem: 
+- Comments mix German and English inconsistently.
 
-**Examples**:
+Examples:
 - `lib/descriptions.dart:66`: `"Fehler beim Laden der Beschreibung: $e"`
 - `lib/previous_searches.dart:30`: `"Fehler beim Laden der Beschreibung: $e"`
 - `lib/orchestrator.dart:75`: `"Sign-out error: $e"`
 
-**Recommendation**: Standardize on English for all code, comments, and user-facing messages.
+Recommendation: 
+- Standardize on English for all code, comments, and user-facing messages.
 
-- [ ] 2.2 Inconsistent Error Messages
-**Problem**: Error messages vary in style and language.
+- [ ] **2.2 Inconsistent Error Messages**
+      
+Problem: 
+- Error messages vary in style and language.
 
-**Recommendation**: Create a centralized error message utility:
+Recommendation: 
+- Create a centralized error message utility:
 ```dart
 class ErrorMessages {
   static const String analysisFailed = "Something went wrong while analyzing your wine label - Please try again!";
@@ -130,15 +144,18 @@ class ErrorMessages {
 }
 ```
 
-- [ ] 2.3 Magic Numbers and Strings
-**Problem**: Hardcoded values throughout the code.
+- [ ] **2.3 Magic Numbers and Strings**
+      
+Problem: 
+- Hardcoded values throughout the code.
 
-**Examples**:
+Examples:
 - `lib/views.dart:19`: `"Discover you wine"` (typo: "you" should be "your")
 - `lib/views.dart:343`: `"There was an issue with the summary - Please try again!"`
 - Multiple color values: `Color.fromARGB(255, 210, 8, 8)`
 
-**Recommendation**: Extract to constants:
+Recommendation: 
+- Extract to constants:
 ```dart
 class AppConstants {
   static const String appTitle = "Discover your wine";
@@ -147,29 +164,38 @@ class AppConstants {
 }
 ```
 
----
 
 ### 3. Maintainability
 
-- [ ] 3.1 Large Files
-**Problem**: Several files exceed recommended size limits:
-- `orchestrator.dart`: ~550 lines
-- `views.dart`: ~550 lines
-- `winedata_registration.dart`: ~335 lines
+- [ ] **3.1 Large Files**
+      
+Problem: 
+- Several files exceed recommended size limits:
+	- `orchestrator.dart`: ~550 lines
+	- `views.dart`: ~550 lines
+	- `winedata_registration.dart`: ~335 lines
 
-**Recommendation**: Split large files into smaller, focused modules.
+Recommendation: 
+- Split large files into smaller, focused modules.
 
-- [ ] 3.2 Tight Coupling
-**Problem**: UI components directly depend on implementation details.
+- [ ] **3.2 Tight Coupling**
+      
+Problem: 
+- UI components directly depend on implementation details.
 
-**Example**: `_buildResultView()` directly calls `_fetchWineDescription()` and `fetchSummary()`.
+Example: 
+- `_buildResultView()` directly calls `_fetchWineDescription()` and `fetchSummary()`.
 
-**Recommendation**: Use dependency injection and interfaces to decouple components.
+Recommendation: 
+- Use dependency injection and interfaces to decouple components.
 
-- [ ] 3.3 Missing Abstraction
-**Problem**: Direct dependencies on Firebase, HTTP, and other services.
+- [ ] **3.3 Missing Abstraction**
+      
+Problem: 
+- Direct dependencies on Firebase, HTTP, and other services.
 
-**Recommendation**: Use repository pattern:
+Recommendation: 
+- Use repository pattern:
 ```dart
 abstract class WineRepository {
   Future<WineData> analyzeLabel(Uint8List front, Uint8List back);
@@ -181,16 +207,18 @@ class FirebaseWineRepository implements WineRepository {
 }
 ```
 
----
 
 ### 4. Code Duplication
 
 ### Critical Issues
 
-- [ ] 4.1 Repeated Error Handling Pattern
-**Location**: Multiple files
+- [ ] **4.1 Repeated Error Handling Pattern**
+      
+Location:
+- Multiple files
 
-**Problem**: Same error handling code repeated throughout:
+Problem: 
+- Same error handling code repeated throughout:
 ```dart
 ScaffoldMessenger.of(context).showSnackBar(
   const SnackBar(
@@ -203,7 +231,8 @@ ScaffoldMessenger.of(context).showSnackBar(
 );
 ```
 
-**Recommendation**: Create utility function:
+Recommendation: 
+- Create utility function:
 ```dart
 class SnackBarHelper {
   static void showError(BuildContext context, String message) {
@@ -220,10 +249,13 @@ class SnackBarHelper {
 }
 ```
 
-- [ ] 4.2 Token Verification Duplication
-**Location**: All backend functions
+- [ ] **4.2 Token Verification Duplication**
+      
+Location:
+- All backend functions
 
-**Problem**: Token verification code repeated in every function:
+Problem: 
+- Token verification code repeated in every function:
 ```javascript
 let user;
 try {
@@ -234,7 +266,8 @@ try {
 }
 ```
 
-**Recommendation**: Create middleware:
+Recommendation: 
+- Create middleware:
 ```javascript
 async function verifyToken(req, res, next) {
   const token = req.query.token || req.body.token;
@@ -251,19 +284,27 @@ async function verifyToken(req, res, next) {
 }
 ```
 
-- [ ] 4.3 CORS Headers Duplication
-**Location**: All backend functions
+- [ ] **4.3 CORS Headers Duplication**
+      
+Location:
+- All backend functions
 
-**Problem**: `res.set('Access-Control-Allow-Origin', '*');` repeated in every function.
+Problem: 
+- `res.set('Access-Control-Allow-Origin', '*');` repeated in every function.
 
-**Recommendation**: Use middleware or set globally in Firebase Functions configuration.
+Recommendation: 
+- Use middleware or set globally in Firebase Functions configuration.
 
-#### 4.4 Similar API Call Patterns
-**Location**: Multiple Dart files
+- [ ] **4.4 Similar API Call Patterns**
+      
+Location: 
+- Multiple Dart files
 
-**Problem**: Similar HTTP request patterns repeated.
+Problem: 
+- Similar HTTP request patterns repeated.
 
-**Recommendation**: Create a base HTTP client:
+Recommendation: 
+- Create a base HTTP client:
 ```dart
 class ApiClient {
   Future<Map<String, dynamic>> get(String endpoint, {Map<String, String>? queryParams});
@@ -271,19 +312,20 @@ class ApiClient {
 }
 ```
 
----
 
 ### 5. Error Handling
 
-- [ ] 5.1 Inconsistent Error Handling
-**Problem**: Some errors are caught and shown to users, others are silently logged.
+- [ ] **5.1 Inconsistent Error Handling**
+      
+Problem: 
+- Some errors are caught and shown to users, others are silently logged.
 
-**Examples**:
+Examples:
 - `lib/winedata_registration.dart:218`: Errors are caught and shown
 - `lib/descriptions.dart:65`: Errors are caught but generic message shown
 - `lib/summary.dart:25`: Errors return empty map `{}` without indication
 
-**Recommendation**: 
+Recommendation: 
 - Always provide user feedback for user-initiated actions
 - Log detailed errors for debugging
 - Use Result/Either pattern for better error handling:
@@ -304,10 +346,13 @@ class Failure<T> extends Result<T> {
 }
 ```
 
-- [ ] 5.2 Missing Error Types
-**Problem**: All errors treated the same way.
+- [ ] **5.2 Missing Error Types**
+      
+Problem: 
+- All errors treated the same way.
 
-**Recommendation**: Create specific error types:
+Recommendation: 
+- Create specific error types:
 ```dart
 class ApiException implements Exception {
   final int statusCode;
@@ -321,10 +366,13 @@ class NetworkException implements Exception {
 }
 ```
 
-- [ ] 5.3 No Retry Logic
-**Problem**: Network failures immediately fail without retry.
+- [ ] **5.3 No Retry Logic**
+      
+Problem: 
+- Network failures immediately fail without retry.
 
-**Recommendation**: Implement exponential backoff retry for network calls:
+Recommendation:
+- Implement exponential backoff retry for network calls:
 ```dart
 Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {
   for (int i = 0; i < maxRetries; i++) {
@@ -339,10 +387,13 @@ Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {
 }
 ```
 
-- [ ] 5.4 Missing Input Validation
-**Problem**: Limited validation of user inputs and API responses.
+- [ ] **5.4 Missing Input Validation**
+      
+Problem: 
+- Limited validation of user inputs and API responses.
 
-**Recommendation**: Add validation:
+Recommendation: 
+- Add validation:
 ```dart
 class WineDataValidator {
   static ValidationResult validate(WineData data) {
@@ -354,24 +405,28 @@ class WineDataValidator {
 }
 ```
 
----
 
 ### 6. Documentation
 
 ### Critical Issues
 
-- [ ] 6.1 Missing API Documentation
-**Problem**: No documentation for backend API endpoints.
+- [ ] **6.1 Missing API Documentation**
+      
+Problem:
+- No documentation for backend API endpoints.
 
-**Recommendation**: 
+Recommendation: 
 - Add JSDoc comments to all functions
 - Document request/response formats
 - Include example requests
 
-- [ ] 6.2 Minimal Code Documentation
-**Problem**: Most functions lack documentation.
+- [ ] **6.2 Minimal Code Documentation**
+      
+Problem: 
+- Most functions lack documentation.
 
-**Recommendation**: Add DartDoc comments:
+Recommendation: 
+- Add DartDoc comments:
 ```dart
 /// Analyzes wine label images using Gemini AI.
 /// 
@@ -385,51 +440,67 @@ Future<WineData> analyzeLabel(Uint8List front, Uint8List back) async {
 }
 ```
 
-- [ ] 6.3 No Architecture Documentation
-**Problem**: No README explaining project structure or architecture decisions.
+- [ ] **6.3 No Architecture Documentation**
+      
+Problem: 
+- No README explaining project structure or architecture decisions.
 
-**Recommendation**: Create comprehensive README with:
-- Project overview
-- Architecture diagram
-- Setup instructions
-- API documentation
-- Development guidelines
+Recommendation: 
+- Create comprehensive README with:
+	- Project overview
+	- Architecture diagram
+	- Setup instructions
+	- API documentation
+	- Development guidelines
 
-- [ ] 6.4 Missing Inline Comments for Complex Logic
-**Problem**: Complex logic (e.g., summary generation feedback loop) lacks explanation.
+- [ ] **6.4 Missing Inline Comments for Complex Logic**
+      
+Problem: 
+- Complex logic (e.g., summary generation feedback loop) lacks explanation.
 
-**Location**: `backend/functions/summary.js:70-92`
+Location: 
+- `backend/functions/summary.js:70-92`
 
-**Recommendation**: Add detailed comments explaining the iteration logic and why it's necessary.
+Recommendation: 
+- Add detailed comments explaining the iteration logic and why it's necessary.
 
----
+
 
 ### 7. Performance Issues
 
-- [ ] 7.1 No Caching
-**Problem**: No caching of API responses or images.
+- [ ] **7.1 No Caching**
+      
+Problem: 
+- No caching of API responses or images.
 
-**Recommendation**: 
+Recommendation: 
 - Cache wine descriptions
 - Cache label analysis results
 - Use image caching library
 
-- [ ] 7.2 Inefficient Image Handling
-**Problem**: Images are loaded into memory without optimization.
+- [ ] **7.2 Inefficient Image Handling**
+      
+Problem:
+- Images are loaded into memory without optimization.
 
-**Location**: `lib/winedata_registration.dart`
+Location: 
+- `lib/winedata_registration.dart`
 
-**Recommendation**: 
+Recommendation: 
 - Compress images before upload
 - Resize images to reasonable dimensions
 - Use image caching
 
-- [ ] 7.3 Multiple Sequential API Calls
-**Problem**: Some operations make multiple sequential API calls that could be parallelized.
+- [ ] **7.3 Multiple Sequential API Calls**
+      
+Problem:
+- Some operations make multiple sequential API calls that could be parallelized.
 
-**Example**: `fetchDescriptions` and `generateSummary` could potentially be optimized.
+Example: 
+- `fetchDescriptions` and `generateSummary` could potentially be optimized.
 
-**Recommendation**: Use `Future.wait()` for independent operations:
+Recommendation: 
+- Use `Future.wait()` for independent operations:
 ```dart
 final results = await Future.wait([
   fetchDescriptions(query),
@@ -437,12 +508,16 @@ final results = await Future.wait([
 ]);
 ```
 
-- [ ] 7.4 No Pagination
-**Problem**: Search history loads all results at once.
+- [ ] **7.4 No Pagination**
+      
+Problem: 
+- Search history loads all results at once.
 
-**Location**: `backend/functions/previousWines.js:20`
+Location: 
+- `backend/functions/previousWines.js:20`
 
-**Recommendation**: Implement pagination:
+Recommendation: 
+- Implement pagination:
 ```javascript
 const limit = parseInt(req.query.limit) || 20;
 const offset = parseInt(req.query.offset) || 0;
@@ -454,20 +529,26 @@ const queryResult = await searchCollection
   .get();
 ```
 
-- [ ] 7.5 Large Payloads
-**Problem**: Full article text is fetched and stored for each description.
+- [ ] **7.5 Large Payloads**
+      
+Problem: 
+- Full article text is fetched and stored for each description.
 
-**Location**: `backend/functions/descriptions.js:100-106`
+Location:
+- `backend/functions/descriptions.js:100-106`
 
-**Recommendation**: 
+Recommendation: 
 - Store only snippets initially
 - Fetch full text on demand
 - Limit article text length
 
-- [ ] 7.6 No Request Timeout
-**Problem**: HTTP requests have no timeout, can hang indefinitely.
+- [ ] **7.6 No Request Timeout**
+      
+Problem: 
+- HTTP requests have no timeout, can hang indefinitely.
 
-**Recommendation**: Add timeouts:
+Recommendation: 
+- Add timeouts:
 ```dart
 final response = await http.get(url).timeout(
   const Duration(seconds: 30),
@@ -477,45 +558,22 @@ final response = await http.get(url).timeout(
 );
 ```
 
----
 
 ### 8. AI API Usage
 
-### Critical Security Issues
+- [x] **8.1 CRITICAL: Hardcoded API Keys**
 
-- [ ] 8.1 **CRITICAL: Hardcoded API Keys**
-**Location**: `backend/functions/config.js:23,27`
+- [ ] **8.2 No Rate Limiting**
+      
+Problem: 
+- No rate limiting on AI API calls.
 
-**Problem**: API keys are hardcoded in source code:
-```javascript
-export const GeminiAPIKey = "AIzaSyC_u49bnxvaObp-2vVXSc0TvSLgQWqyT7c";
-export const serpApiKey = "ec05db9a150499c3e869cb95e63a146a5b1dce6257c1042bf89c340bf2c22d1a";
-```
-
-**Impact**: 
-- Keys exposed in version control
-- Cannot rotate keys without code changes
-- Security risk if repository is public
-
-**Recommendation**: **IMMEDIATE ACTION REQUIRED**
-1. Rotate all exposed API keys immediately
-2. Use Firebase Functions environment variables:
-```javascript
-export const GeminiAPIKey = process.env.GEMINI_API_KEY;
-export const serpApiKey = process.env.SERP_API_KEY;
-```
-3. Add `.env` to `.gitignore`
-4. Document required environment variables
-
-- [ ] 8.2 No Rate Limiting
-**Problem**: No rate limiting on AI API calls.
-
-**Impact**: 
+Impact: 
 - Potential cost overruns
 - Risk of hitting API quotas
 - No protection against abuse
 
-**Recommendation**: Implement rate limiting:
+Recommendation: Implement rate limiting:
 ```javascript
 import rateLimit from 'express-rate-limit';
 
@@ -525,141 +583,173 @@ const aiRateLimiter = rateLimit({
 });
 ```
 
-- [ ] 8.3 No Cost Monitoring
-**Problem**: No tracking of AI API usage or costs.
+- [ ] **8.3 No Cost Monitoring**
+      
+Problem: 
+- No tracking of AI API usage or costs.
 
-**Recommendation**: 
+Recommendation: 
 - Log API usage
 - Set up billing alerts
 - Track costs per user/operation
 
-- [ ] 8.4 No Error Handling for AI Failures
-**Problem**: Limited error handling for AI API failures.
+- [ ] **8.4 No Error Handling for AI Failures**
+      
+Problem:
+- Limited error handling for AI API failures.
 
-**Location**: `backend/functions/summary.js`, `backend/functions/labelExtraction.js`
+Location: 
+- `backend/functions/summary.js`, `backend/functions/labelExtraction.js`
 
-**Recommendation**: 
+Recommendation: 
 - Handle quota exceeded errors
 - Handle invalid response errors
 - Provide fallback behavior
 
-- [ ] 8.5 Inefficient AI Usage
-**Problem**: Summary generation makes multiple AI calls in a loop.
+- [ ] **8.5 Inefficient AI Usage**
+      
+Problem: 
+- Summary generation makes multiple AI calls in a loop.
 
-**Location**: `backend/functions/summary.js:70-92`
+Location: 
+- `backend/functions/summary.js:70-92`
 
-**Issues**:
+Issues:
 - Up to 5 iterations (MaxIterationCount = 5)
 - Each iteration makes 2 AI calls (writer + reviewer)
 - Can take 10+ seconds per request
 - No early exit conditions
 
-**Recommendation**: 
+Recommendation: 
 - Consider reducing max iterations
 - Add early exit if quality threshold met
 - Cache intermediate results
 - Consider using faster model for reviewer
 
-- [ ] 8.6 No Prompt Versioning
-**Problem**: AI prompts are hardcoded without versioning.
+- [ ] **8.6 No Prompt Versioning**
+      
+Problem:
+- AI prompts are hardcoded without versioning.
 
-**Impact**: Difficult to A/B test or rollback prompt changes.
+Impact: 
+- Difficult to A/B test or rollback prompt changes.
 
-**Recommendation**: 
+Recommendation: 
 - Store prompts in database or config
 - Version prompts
 - Allow prompt updates without code deployment
 
-- [ ] 8.7 Missing Input Sanitization
-**Problem**: User inputs passed directly to AI without sanitization.
+- [ ] **8.7 Missing Input Sanitization**
+      
+Problem:
+- User inputs passed directly to AI without sanitization.
 
-**Recommendation**: 
+Recommendation: 
 - Sanitize inputs
 - Limit input length
 - Validate input format
 
-- [ ] 8.8 No Response Validation
-**Problem**: AI responses parsed without comprehensive validation.
+- [ ] **8.8 No Response Validation**
+      
+Problem: 
+- AI responses parsed without comprehensive validation.
 
-**Location**: `backend/functions/summary.js:179`, `backend/functions/labelExtraction.js:53`
+Location: 
+- `backend/functions/summary.js:179`, `backend/functions/labelExtraction.js:53`
 
-**Recommendation**: 
+Recommendation: 
 - Validate JSON structure
 - Validate required fields
 - Handle malformed responses gracefully
 
----
 
 ### 9. Additional Issues
 
-- [ ] 9.1 Typo in UI
-**Location**: `lib/views.dart:19`
+- [ ] **9.1 Typo in UI**
+      
+Location: 
+- `lib/views.dart:19`
 ```dart
 "Discover you wine"  // Should be "Discover your wine"
 ```
 
-- [ ] 9.2 Unused Dependencies
-**Problem**: Some dependencies may not be used.
+- [ ] **9.2 Unused Dependencies**
+      
+Problem:
+- Some dependencies may not be used.
 
-**Recommendation**: Run dependency analysis:
+Recommendation: 
+- Run dependency analysis:
 ```bash
 flutter pub deps
 npm audit
 ```
 
-- [ ] 9.3 Missing Tests
-**Problem**: No test files found in the codebase.
+- [ ] **9.3 Missing Tests**
+      
+Problem: 
+- No test files found in the codebase.
 
-**Recommendation**: 
+Recommendation: 
 - Add unit tests for business logic
 - Add integration tests for API calls
 - Add widget tests for UI components
 
-- [ ] 9.4 Hardcoded Domain List
-**Location**: `lib/model.dart:78-93`
+- [ ] **9.4 Hardcoded Domain List**
+      
+Location: 
+- `lib/model.dart:78-93`
 
-**Problem**: Allowed domains hardcoded in frontend with TODO to move to backend.
+Problem: 
+- Allowed domains hardcoded in frontend with TODO to move to backend.
 
-**Recommendation**: Move to backend configuration or database.
+Recommendation: 
+- Move to backend configuration or database.
 
-- [ ] 9.5 Missing Loading States
-**Problem**: Some operations don't show loading indicators.
+- [ ] **9.5 Missing Loading States**
+      
+Problem:
+- Some operations don't show loading indicators.
 
-**Recommendation**: Ensure all async operations show loading states.
+Recommendation: 
+- Ensure all async operations show loading states.
 
-- [ ] 9.6 No Offline Support
-**Problem**: App requires internet connection for all operations.
+- [ ] **9.6 No Offline Support**
+      
+Problem: 
+- App requires internet connection for all operations.
 
-**Recommendation**: 
+Recommendation: 
 - Cache recent results
 - Queue operations when offline
 - Show offline indicator
 
 ---
 
-## 10. Priority Recommendations
+
+## Priority Recommendations
 
 ### Critical (Fix Immediately)
-1. **Remove hardcoded API keys** - Security risk
-2. **Rotate exposed API keys** - Security risk
-3. **Add environment variable configuration** - Security and flexibility
+1. ✅ **Remove hardcoded API keys** - Security risk
+2. ✅ **Rotate exposed API keys** - Security risk
+3. -- **Add environment variable configuration** - Security and flexibility
 
 ### High Priority
-1. **Refactor orchestrator.dart** - Improve maintainability
-2. **Create service layer** - Better architecture
-3. **Standardize error handling** - Better UX
-4. **Add comprehensive error handling** - Reliability
-5. **Implement rate limiting** - Cost control
+1. -- **Refactor orchestrator.dart** - Improve maintainability
+2. -- **Create service layer** - Better architecture
+3. -- **Standardize error handling** - Better UX
+4. -- **Add comprehensive error handling** - Reliability
+5. -- **Implement rate limiting** - Cost control
 
 ### Medium Priority
-1. **Add documentation** - Developer experience
-2. **Reduce code duplication** - Maintainability
-3. **Add input validation** - Data quality
-4. **Implement caching** - Performance
-5. **Add tests** - Code quality
+1. -- **Add documentation** - Developer experience
+2. -- **Reduce code duplication** - Maintainability
+3. -- **Add input validation** - Data quality
+4. -- **Implement caching** - Performance
+5. -- **Add tests** - Code quality
 
 ### Low Priority
-1. **Fix typos** - Polish
-2. **Optimize AI usage** - Cost optimization
-3. **Add pagination** - Scalability
-4. **Improve offline support** - UX
+1. -- **Fix typos** - Polish
+2. -- **Optimize AI usage** - Cost optimization
+3. -- **Add pagination** - Scalability
+4. -- **Improve offline support** - UX
