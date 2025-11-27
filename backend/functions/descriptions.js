@@ -2,7 +2,7 @@
 
 import { onRequest } from "firebase-functions/https";
 import logger from "firebase-functions/logger";
-import { serpApiKey, admin, searchCollection } from "./config.js";
+import { getSerpKey, admin, searchCollection } from "./config.js";
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from 'jsdom';
 
@@ -26,6 +26,7 @@ export const fetchDescriptions = onRequest(async (req, res) => {
     return res.status(401).send("Wrong token");
   }
   // call SerpApi
+  const serpApiKey = await getSerpKey();
   const serpUrl = new URL("https://serpapi.com/search.json"); 
   serpUrl.searchParams.set("q", q); 
   serpUrl.searchParams.set("api_key", serpApiKey); 

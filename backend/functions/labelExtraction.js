@@ -3,7 +3,7 @@
 import { onRequest } from "firebase-functions/https";
 import logger from "firebase-functions/logger";
 import { parseMultipart, getMultipartBoundary } from "@remix-run/multipart-parser/node";
-import { ai, GeminiModel, admin } from "./config.js";
+import { getAi, GeminiModel, admin } from "./config.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
@@ -42,6 +42,7 @@ async function labelUserImages(front, back) {
     { inlineData: { mimeType: "image/jpeg", data: front } },
     { inlineData: { mimeType: "image/jpeg", data: back } },
   ];
+  const ai = await getAi()
   const response = await ai.models.generateContent({
     model: GeminiModel,
     contents: contents,

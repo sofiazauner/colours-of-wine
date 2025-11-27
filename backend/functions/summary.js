@@ -2,7 +2,7 @@
 
 import { onRequest } from "firebase-functions/https";
 import logger from "firebase-functions/logger";
-import { serpApiKey, ai, GeminiModel, admin, WineComponents } from "./config.js";
+import { getSerpKey, getAi, GeminiModel, admin, WineComponents } from "./config.js";
 import { extractDescriptionsFromSerp } from "./descriptions.js";
 import { generateImage } from "./image.js";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 
 // (TODO: Don't search for descriptions again, use the onse already fetched!)
 // --> Maybe merge the functions; get descriptions and summarize(+image) at the same time?
+
 
 // generate summary with loop of Writer and Reviewer until approved or max iterations reached 
 export const generateSummary = onRequest(async (req, res) => {
@@ -27,6 +28,7 @@ export const generateSummary = onRequest(async (req, res) => {
     return res.status(401).send("Wrong token");
   }
   // call SerpApi to get descriptions
+  const serpApiKey = await getSerpKey(); 
   const serpUrl = new URL("https://serpapi.com/search.json"); 
   serpUrl.searchParams.set("q", req.query.q); 
   serpUrl.searchParams.set("api_key", serpApiKey); 
@@ -166,7 +168,7 @@ WICHTIG:
     "Reifearomen": "FARBE FÜR REIFEAROMEN"
   }
 }`;
-
+  const ai = await getAi()
   const response = await ai.models.generateContent({
     model: GeminiModel,
     contents: [{ text: prompt }],
@@ -214,7 +216,7 @@ WICHTIG:
   "approved": true/false,
   "feedback": "Kurze Begründung + konkretes Feedback zur Verbesserung, falls (approved == false)"
 }`;
-
+  const ai = await getAi()
   const response = await ai.models.generateContent({
     model: GeminiModel,
     contents: [{ text: prompt }],
