@@ -55,30 +55,8 @@ Sofia Zauner, Peter Balint
 
 ### 1. Architecture
 
-- [ ] **1.1 Monolithic Orchestrator File**
+- [x] **1.1 Monolithic Orchestrator File** (No file bigger than 300 lines)
       
-Location:
-- `colours_of_wine/lib/orchestrator.dart` (~550 lines)
-
-Problem: The orchestrator file contains:
-- State management
-- UI building logic
-- Business logic
-- API calls
-- Multiple concerns mixed together
-
-Impact: 
-- Difficult to test individual components
-- Hard to maintain and extend
-- Violates Single Responsibility Principle
-
-Recommendation: 
-- Split into separate files:
-  - `wine_scanner_state.dart` - State management
-  - `wine_scanner_service.dart` - API service layer
-  - `wine_scanner_views.dart` - UI components
-  - `wine_scanner_controller.dart` - Business logic coordination
-
 - [ ] **1.2 Missing Service Layer**
       
 Problem:
