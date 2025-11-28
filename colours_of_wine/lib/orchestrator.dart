@@ -12,8 +12,12 @@ import 'package:intl/intl.dart';                          // for date formatting
 import 'package:colours_of_wine/model.dart';
 import 'package:colours_of_wine/config.dart';
 
-part 'views.dart';
-part 'winedata_registration.dart';
+part 'wine_start_view.dart';
+part 'wine_history_view.dart';
+part 'wine_result_view.dart';
+part 'wine_descriptions_view.dart';
+part 'winedata_registration_camera.dart';
+part 'winedata_registration_manual.dart';
 part 'descriptions.dart';
 part 'summary.dart';
 part 'previous_searches.dart';

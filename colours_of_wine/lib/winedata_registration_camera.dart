@@ -1,8 +1,8 @@
-/* logic for wine data registration (camera, manual) */
+/* logic for wine data registration with camera */
 
 part of 'orchestrator.dart';
 
-extension WineScannerLabelLogic on _WineScannerPageState {
+extension WineScannerCameraLogic on _WineScannerPageState {
 
   // take pictures of labels with camera
   Future<void> _takePhotos() async {
@@ -180,7 +180,6 @@ extension WineScannerLabelLogic on _WineScannerPageState {
           ],
         ),
         actions: [
-          // retaking
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);     // closes window and reopens camera
@@ -188,7 +187,6 @@ extension WineScannerLabelLogic on _WineScannerPageState {
             },
             child: const Text("Retake Photos"),
           ),
-          // confirming --> extract data
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);     // closes window and starts LLM-analyzing
@@ -251,13 +249,11 @@ extension WineScannerLabelLogic on _WineScannerPageState {
       contentType: MediaType.parse('image/jpeg'),
       filename: 'back.jpeg',
     ));
-
     try {
       final response = await request.send();
       if (response.statusCode != 200) {
         throw Exception("Failed to call Gemini (${response.statusCode})");
       }
-
       final text = await response.stream.bytesToString();
       final decoded = jsonDecode(text);
       return WineData(Map<String, String>.from(decoded));
@@ -265,71 +261,5 @@ extension WineScannerLabelLogic on _WineScannerPageState {
       debugPrint("Gemini Error: $e");
       throw Exception("Gemini Analysis failed: $e");
     }
-  }
-
-
-  // for filling in data manually -->
-  Future<void> _enterManually() async {
-    final Map<String, TextEditingController> controllers = {
-      "Name": TextEditingController(),
-      "Winery": TextEditingController(),
-      "Vintage": TextEditingController(),
-      "Grape Variety": TextEditingController(),
-      "Vineyard Location": TextEditingController(),
-      "Country": TextEditingController(),
-    };
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Enter wine details"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: controllers.entries.map((entry) {
-                String label;
-                if (entry.key == "Grape Variety") {
-                  label = "Grape Variety     (mandatory)";
-                } else {
-                  label =
-                      entry.key[0].toUpperCase() + entry.key.substring(1);
-                }
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: TextField(
-                    controller: entry.value,
-                    decoration: InputDecoration(
-                      labelText: label,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final data = <String, String>{};
-                controllers.forEach((key, ctrl) {
-                  data[key] = ctrl.text.trim();
-                });
-
-                Navigator.pop(context);
-                setState(() {
-                  _wineData = WineData(data);
-                });
-              },
-              child: const Text("Save"),
-            ),
-          ],
-        );
-      },
-    );
   }
 }
