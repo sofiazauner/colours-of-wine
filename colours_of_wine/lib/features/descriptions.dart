@@ -32,36 +32,8 @@ extension WineScannerWebLogic on _WineScannerPageState {
     setState(() => _isLoading = true); // show loading screen
 
     try {
-      final query = _wineData!.toUriComponent();
-      final token = await _getToken();
-      final wineName = _wineData!.name;
-      final url = Uri.parse("$baseURL/fetchDescriptions").replace(
-        queryParameters: {
-          'token': token,
-          'q': query,
-          'name': wineName,
-        },
-      );
-      final response = await http.get(url);
-
-      if (response.statusCode != 200) {
-        throw Exception("Search failed with ${response.statusCode}");
-      }
-
-      final data = jsonDecode(response.body);
-      final results = <Map<String, String>>[];
-
-      if (data['organic_results'] != null) {
-        for (var item in data['organic_results']) {
-          results.add({
-            "title": item['title'] ?? "No title",
-            "snippet": item['snippet'] ?? "",
-            "url": item['link'] ?? "",
-          });
-        }
-      }
-
-      return results;
+      final result = await _wineService.fetchDescriptions(_wineData!);
+      return result;
     } catch (e) {
       debugPrint("Fehler beim Laden der Beschreibung: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,7 +47,9 @@ extension WineScannerWebLogic on _WineScannerPageState {
       );
       return [];
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }

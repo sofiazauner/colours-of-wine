@@ -6,7 +6,6 @@ extension WineScannerCameraLogic on _WineScannerPageState {
 
   // take pictures of labels with camera
   Future<void> _takePhotos() async {
-    final token = await _getToken();
     if (kIsWeb) {                       // in Chrome upload images
       _showUploadDialog();
     } else {                            // handy takes pictures
@@ -208,8 +207,7 @@ extension WineScannerCameraLogic on _WineScannerPageState {
     setState(() => _isLoading = true);
 
     try {
-      final result =
-          await _callGemini(_frontBytes!, _backBytes!); // give pics to gemini
+     final result = await _wineService.analyzeLabel(_frontBytes!, _backBytes!,); // give pics to gemini
       setState(() {
         _wineData = result;                             // results in map<attribute, data>
       });
@@ -226,40 +224,9 @@ extension WineScannerCameraLogic on _WineScannerPageState {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-
-  Future<WineData> _callGemini(
-      Uint8List frontBytes, Uint8List backBytes) async {
-    var request = http.MultipartRequest(
-        'POST', Uri.parse("$baseURL/callGemini"));
-    final token = await _getToken();
-    request.fields['token'] = token;
-    request.files.add(http.MultipartFile.fromBytes(
-      'front',
-      frontBytes,
-      contentType: MediaType.parse('image/jpeg'),
-      filename: 'front.jpeg',
-    ));
-    request.files.add(http.MultipartFile.fromBytes(
-      'back',
-      backBytes,
-      contentType: MediaType.parse('image/jpeg'),
-      filename: 'back.jpeg',
-    ));
-    try {
-      final response = await request.send();
-      if (response.statusCode != 200) {
-        throw Exception("Failed to call Gemini (${response.statusCode})");
+      if(mounted) {
+        setState(() => _isLoading = false);
       }
-      final text = await response.stream.bytesToString();
-      final decoded = jsonDecode(text);
-      return WineData(Map<String, String>.from(decoded));
-    } catch (e) {
-      debugPrint("Gemini Error: $e");
-      throw Exception("Gemini Analysis failed: $e");
     }
   }
 }

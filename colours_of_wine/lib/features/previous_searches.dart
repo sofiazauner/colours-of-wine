@@ -7,24 +7,10 @@ extension WineScannerHistoryLogic on _WineScannerPageState {
   // find previous searches
   Future<List<StoredWine>> _fetchSearchHistory() async {
     if (_isLoading) return [];
-
     setState(() => _isLoading = true);
 
     try {
-      final token = await _getToken();
-      final url = Uri.parse("$baseURL/searchHistory?token=$token");
-      final response = await http.get(url);
-
-      if (response.statusCode != 200) {
-        throw Exception("Search failed with ${response.statusCode}");
-      }
-
-      final List<dynamic> data = jsonDecode(response.body);
-      final List<StoredWine> list = data.map((item) {
-        final map = Map<String, dynamic>.from(item);
-        return StoredWine.fromJson(map);
-      }).toList();
-
+      final list = await _wineService.getSearchHistory();
       return list;
     } catch (e) {
       debugPrint("Fehler beim Laden der Beschreibung: $e");
@@ -51,23 +37,10 @@ extension WineScannerHistoryLogic on _WineScannerPageState {
   }
 
 
-  //delete previous search entry
+  // delete previous search entry
   Future<void> _deleteStoredWine(String id) async {
     try {
-      final token = await _getToken();
-      final url = Uri.parse("$baseURL/deleteSearch").replace(
-        // remove from database
-        queryParameters: {
-          'token': token,
-          'id': id,
-        },
-      );
-
-      final response = await http.post(url);
-
-      if (response.statusCode != 200) {
-        throw Exception("Error: Delete failed: ${response.statusCode}");
-      }
+      await _wineService.deleteSearch(id);
 
       setState(() {
         _pastWineData!.removeWhere((w) => w.id == id); // remove from local list

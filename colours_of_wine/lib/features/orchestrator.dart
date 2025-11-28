@@ -4,18 +4,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart'; 
-import 'package:http_parser/src/media_type.dart';         // boilerplate for multipart
-import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';                 // for kIsWeb
 import 'package:firebase_auth/firebase_auth.dart';        // for authentication (Google Sign-In)
 import 'package:intl/intl.dart';                          // for date formatting
-import 'package:colours_of_wine/model.dart';
-import 'package:colours_of_wine/config.dart';
+import 'package:colours_of_wine/models/models.dart';
+import 'package:colours_of_wine/config/config.dart';
+import 'package:colours_of_wine/services/wine_service.dart';
 
-part 'wine_start_view.dart';
-part 'wine_history_view.dart';
-part 'wine_result_view.dart';
-part 'wine_descriptions_view.dart';
+part '../views/wine_start_view.dart';
+part '../views/wine_history_view.dart';
+part '../views/wine_result_view.dart';
+part '../views/wine_descriptions_view.dart';
 part 'winedata_registration_camera.dart';
 part 'winedata_registration_manual.dart';
 part 'descriptions.dart';
@@ -26,7 +25,6 @@ part 'previous_searches.dart';
 // startscreen
 class WineScannerPage extends StatefulWidget {
   const WineScannerPage(this._user, {super.key});
-
   final User _user;
 
   @override
@@ -37,6 +35,7 @@ class WineScannerPage extends StatefulWidget {
 class _WineScannerPageState extends State<WineScannerPage> {
   _WineScannerPageState(this._user);
 
+  late final WineService _wineService;    // service layer "talking-point"
   final ImagePicker _picker = ImagePicker();
   Uint8List? _frontBytes;
   Uint8List? _backBytes;
@@ -50,6 +49,16 @@ class _WineScannerPageState extends State<WineScannerPage> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+
+    _wineService = WineService(
+      baseURL: baseURL,                   // from config.dart
+      getToken: _getToken,
+    );
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -60,12 +69,10 @@ class _WineScannerPageState extends State<WineScannerPage> {
     return _token!;
   }
 
-
   // signing out
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
-
       // clear data
       setState(() {
         _wineData = null;
@@ -88,7 +95,6 @@ class _WineScannerPageState extends State<WineScannerPage> {
       );
     }
   }
-
 
   // shows user interfaces for the different screens --->
   @override

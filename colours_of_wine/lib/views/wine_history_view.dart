@@ -1,6 +1,6 @@
 /* user interface for the history screen */
 
-part of 'orchestrator.dart';
+part of '../features/orchestrator.dart';
 
 extension WineScannerViews on _WineScannerPageState {
 

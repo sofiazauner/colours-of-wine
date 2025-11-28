@@ -1,6 +1,6 @@
 /* user interface for the result screen */
 
-part of 'orchestrator.dart';
+part of '../features/orchestrator.dart';
 
 extension WineScannerResultViews on _WineScannerPageState {
 

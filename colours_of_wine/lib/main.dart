@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:colours_of_wine/firebase_options.dart';
-import 'package:colours_of_wine/login.dart';
+import 'package:colours_of_wine/config/firebase_options.dart';
+import 'package:colours_of_wine/features/login.dart';
 
 
 // runs app

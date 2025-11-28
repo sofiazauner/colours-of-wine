@@ -11,17 +11,8 @@ extension WineScannerSummaryLogic on _WineScannerPageState {
     }
     setState(() => _isLoading = true);
     try {
-      final token = await _getToken();
-      final query = _wineData!.toUriComponent();
-      final url =
-          Uri.parse("$baseURL/generateSummary?token=$token&q=$query");
-      final response = await http.get(url);
-
-      if (response.statusCode != 200) {
-        throw Exception("Failed to fetch summary (${response.statusCode})");
-      }
-
-      return jsonDecode(response.body);
+      final result = await _wineService.generateSummary(_wineData!);
+      return result;
     } catch (e) {
       debugPrint("Error while fetching summary: $e");
       ScaffoldMessenger.of(context).showSnackBar(

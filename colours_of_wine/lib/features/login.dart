@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';                           // for kIsWeb
 import 'package:firebase_auth/firebase_auth.dart';                  // for authentification (Google Sign-In)
 import 'package:google_sign_in/google_sign_in.dart';                          
-import 'package:colours_of_wine/orchestrator.dart';
+import 'package:colours_of_wine/features/orchestrator.dart';
 
 
 // init screen - decide if we need login or not

@@ -1,6 +1,6 @@
 /* user interface for the start screen  */
 
-part of 'orchestrator.dart';
+part of '../features/orchestrator.dart';
 
 extension WineScannerStartView on _WineScannerPageState {
 

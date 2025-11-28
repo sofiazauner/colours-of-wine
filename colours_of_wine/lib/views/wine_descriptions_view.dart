@@ -1,6 +1,6 @@
 /* user interface for the descriptions screen */
 
-part of 'orchestrator.dart';
+part of '../features/orchestrator.dart';
 
 extension WineScannerDescriptionView on _WineScannerPageState {
 
