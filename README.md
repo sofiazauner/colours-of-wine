@@ -52,46 +52,15 @@ Sofia Zauner, Peter Balint
 
 
 ## ✅ Code Quality Review: Colours of Wine --> Bis Montag!!
+ 
+### 1. Architecture ✅
 
-### 1. Architecture
-
-- [x] **1.1 Monolithic Orchestrator File** (No file bigger than 300 lines)
+- [x] **1.1 Monolithic Orchestrator File** (No file bigger than 250 lines)
       
-- [ ] **1.2 Missing Service Layer**
+- [x] **1.2 Missing Service Layer**
+
+- [x] **1.3 Hardcoded Configuration**
       
-Problem:
-- Direct HTTP calls scattered throughout the codebase without abstraction.
-
-Recommendation: 
-- Create a service layer:
-```dart
-class WineService {
-  Future<WineData> analyzeLabel(Uint8List front, Uint8List back);
-  Future<List<Map<String, String>>> fetchDescriptions(String query);
-  Future<Map<String, dynamic>> generateSummary(String query);
-  Future<List<StoredWine>> getSearchHistory();
-  Future<void> deleteSearch(String id);
-}
-```
-
-- [ ] **1.3 Hardcoded Configuration**
-      
-Location:
-- `colours_of_wine/lib/config.dart`
-
-Problem: 
-- Base URL is hardcoded with commented alternatives.
-
-Recommendation: 
-- Use environment variables or build configurations:
-```dart
-final baseURL = const String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://localhost:5001/colours-of-wine/us-central1',
-);
-```
-
-
 ### 2. Readability
 
 - [ ] **2.1 Mixed Language Comments**
@@ -713,8 +682,8 @@ Recommendation:
 3. -- **Add environment variable configuration** - Security and flexibility
 
 ### High Priority
-1. -- **Refactor orchestrator.dart** - Improve maintainability
-2. -- **Create service layer** - Better architecture
+1. ✅ **Refactor orchestrator.dart** - Improve maintainability
+2. ✅ **Create service layer** - Better architecture
 3. -- **Standardize error handling** - Better UX
 4. -- **Add comprehensive error handling** - Reliability
 5. -- **Implement rate limiting** - Cost control
