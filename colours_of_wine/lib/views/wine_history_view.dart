@@ -18,7 +18,7 @@ extension WineScannerViews on _WineScannerPageState {
               child: const Icon(
                 Icons.close,
                 size: 20,
-                color: Color.fromARGB(255, 111, 101, 25),
+                color: AppConstants.deleteButtonColor,
               ),
             ),
           ),
@@ -32,7 +32,7 @@ extension WineScannerViews on _WineScannerPageState {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color.fromARGB(255, 113, 9, 9),
+                    color: AppConstants.redEmoji,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -43,14 +43,13 @@ extension WineScannerViews on _WineScannerPageState {
                         ),
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Color.fromARGB(255, 71, 69, 69),
+                      color: AppConstants.dateColor,
                     ),
                   ),
                   const SizedBox(height: 8),
                 ],
                 if (item.descriptions.isNotEmpty) ...[
-                  const Text(
-                    "Descriptions:",
+                  const Text(AppConstants.descripTitle,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -67,8 +66,7 @@ extension WineScannerViews on _WineScannerPageState {
                     ),
                   ),
                 ] else
-                  const Text(
-                    "No descriptions saved.",
+                  const Text(AppConstants.emptyDescr,
                     style: TextStyle(
                       fontSize: 14,
                       fontStyle: FontStyle.italic,
@@ -94,10 +92,10 @@ extension WineScannerViews on _WineScannerPageState {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
             child: Text(
-              "Previous Searches:",
+              AppConstants.historyTitle,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.normal,
-                    color: Color.fromARGB(255, 113, 9, 9),
+                    color: AppConstants.redEmoji,
                   ),
             ),
           ),
@@ -110,10 +108,10 @@ extension WineScannerViews on _WineScannerPageState {
                   child: TextField(
                     controller: _searchController,
                     decoration: const InputDecoration(
-                      hintText: "Search for a wine name",
+                      hintText: AppConstants.searchHintText,
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
-                          color: Color.fromARGB(255, 236, 111, 111),
+                          color: AppConstants.borderColor,
                         ),
                       ),
                       contentPadding: EdgeInsets.symmetric(
@@ -122,8 +120,8 @@ extension WineScannerViews on _WineScannerPageState {
                       ),
                       filled: true,
                       prefixIcon: Icon(Icons.wine_bar),
-                      prefixIconColor: Color.fromARGB(255, 113, 9, 9),
-                      fillColor: Color.fromARGB(255, 249, 246, 233),
+                      prefixIconColor: AppConstants.redEmoji,
+                      fillColor: AppConstants.fillColor,
                     ),
                     onSubmitted: (value) {
                       setState(() {
@@ -135,7 +133,7 @@ extension WineScannerViews on _WineScannerPageState {
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.search),
-                  tooltip: "Search",
+                  tooltip: AppConstants.searchInHistoryButton,
                   onPressed: () {
                     setState(() {
                       _searchQuery = _searchController.text.trim();
@@ -149,8 +147,7 @@ extension WineScannerViews on _WineScannerPageState {
           if (visibleItems.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                "No entries found.",
+              child: Text(AppConstants.emptySearch,
                 style: TextStyle(fontStyle: FontStyle.italic),
               ),
             )
@@ -174,7 +171,7 @@ extension WineScannerViews on _WineScannerPageState {
                 children: [
                   ElevatedButton.icon(
                     icon: const Icon(Icons.refresh),
-                    label: const Text("Reset Search"),
+                    label: const Text(AppConstants.resetSearch),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -191,7 +188,7 @@ extension WineScannerViews on _WineScannerPageState {
                   const SizedBox(height: 7),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.close),
-                    label: const Text("Close"),
+                    label: const Text(AppConstants.closeButton),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,

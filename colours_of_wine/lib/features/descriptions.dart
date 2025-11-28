@@ -11,14 +11,13 @@ extension WineScannerWebLogic on _WineScannerPageState {
     if (_wineData!.grapeVariety.isEmpty) {          // check if variety is given (mandatory)
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "Grape Variety is mandatory! Please make sure it gets registered and try again!",
-            style: TextStyle(color: Color.fromARGB(255, 255, 255, 251)),
+          content: Text(SnackbarMessages.missingGrapeVariety,
+            style: TextStyle(color: AppConstants.infoTextColour),
             textAlign: TextAlign.center,
           ),
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 8),
-          backgroundColor: Color.fromARGB(255, 184, 114, 17),
+          duration: AppConstants.defaultSnackBarDuration,
+          backgroundColor: AppConstants.informationOrange,
           margin: EdgeInsets.only(
             bottom: 500,
             left: 50,
@@ -35,13 +34,13 @@ extension WineScannerWebLogic on _WineScannerPageState {
       final result = await _wineService.fetchDescriptions(_wineData!);
       return result;
     } catch (e) {
-      debugPrint("Fehler beim Laden der Beschreibung: $e");
+      debugPrint("Error retrieving wine descriptions: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Error retrieving wine descriptions - Please try again!"),
+          content: Text(SnackbarMessages.descriptionFailed),
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 7),
-          backgroundColor: Color.fromARGB(255, 210, 8, 8),
+          duration: AppConstants.defaultSnackBarDuration,
+          backgroundColor: AppConstants.errorRed,
           margin: EdgeInsets.all(50),
         ),
       );

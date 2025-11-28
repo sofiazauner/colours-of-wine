@@ -18,7 +18,7 @@ extension WineScannerManualLogic on _WineScannerPageState {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Enter wine details"),
+          title: const Text(AppConstants.manualTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -46,7 +46,7 @@ extension WineScannerManualLogic on _WineScannerPageState {
           actions: [
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              child: const Text(AppConstants.cancelButton),
             ),
             ElevatedButton(
               onPressed: () {
@@ -60,7 +60,7 @@ extension WineScannerManualLogic on _WineScannerPageState {
                   _wineData = WineData(data);
                 });
               },
-              child: const Text("Save"),
+              child: const Text(AppConstants.safeButton),
             ),
           ],
         );

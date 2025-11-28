@@ -1,5 +1,6 @@
 /* entry point of the app; initializes firebase and launches the WineApp UI */
 
+import 'package:colours_of_wine/utils/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -24,11 +25,11 @@ class WineApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Colours of Wine',
+      title: AppConstants.appTitle,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color.fromRGBO(237, 237, 213, 1),
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(225, 237, 237, 213)),
+        scaffoldBackgroundColor: AppConstants.bgColour,
+        colorScheme: ColorScheme.fromSeed(seedColor: AppConstants.schemeColour),
         textTheme: GoogleFonts.cormorantGaramondTextTheme(),
       ),
       home: const InitPage(),                          // start screen

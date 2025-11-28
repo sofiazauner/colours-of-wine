@@ -28,8 +28,6 @@ Sofia Zauner, Peter Balint
 - [ ] Mineralik-/Süße-Sidebar + Bubbles hinzufügen (Angabe von Anja)
 - [ ] Bild downloadable (?)
 - [ ] Farben auf #E- Format (?) (Code Review)
-- [ ] Improve generation time (not sure if still relevant after model
-  change?) <-- I think it's fine, just have to experiment with review cycles
 - [ ] Bild als multipart übergeben, nicht als base64
 	* oder vlt. sollte das ein anderer Endpoint sein, dann könnte man
 	  Summary vor dem Bild zeigen wenn z.B. das Netzwerk langsam ist
@@ -42,12 +40,8 @@ Sofia Zauner, Peter Balint
 
 ### Etc
 
-- [x] Keys in protected Enviornment (Google Secret Manager)
 - [ ] Vllt. message bei long loading-screens
-- [x] Structured JSON (Code review)
 - [ ] Anzeige von Bild (momentan einf mit Summary unter Winecard, vllt eigenes Fenster oder so? und vllt größer)
-- [x] Merge ai-functions (descriptions+summary+image in one go; maybe faster, definitly avoids fetching descriprions twice (Alternative zur Parameterübergabe)) (?)
-- [x] Use Writer/Reviewer für Farbselektion (siehe vorherigen Punkt)
 
 
 
@@ -61,69 +55,17 @@ Sofia Zauner, Peter Balint
 
 - [x] **1.3 Hardcoded Configuration**
       
-### 2. Readability
+### 2. Readability ✅
 
-- [ ] **2.1 Mixed Language Comments**
+- [x] **2.1 Mixed Language Comments** (all in english now, just texts for ai prompt in german)
+
+- [x] **2.2 Inconsistent Error Messages**
       
-Problem: 
-- Comments mix German and English inconsistently.
-
-Examples:
-- `lib/descriptions.dart:66`: `"Fehler beim Laden der Beschreibung: $e"`
-- `lib/previous_searches.dart:30`: `"Fehler beim Laden der Beschreibung: $e"`
-- `lib/orchestrator.dart:75`: `"Sign-out error: $e"`
-
-Recommendation: 
-- Standardize on English for all code, comments, and user-facing messages.
-
-- [ ] **2.2 Inconsistent Error Messages**
-      
-Problem: 
-- Error messages vary in style and language.
-
-Recommendation: 
-- Create a centralized error message utility:
-```dart
-class ErrorMessages {
-  static const String analysisFailed = "Something went wrong while analyzing your wine label - Please try again!";
-  static const String summaryFailed = "Error retrieving summary - Please try again!";
-  // ...
-}
-```
-
-- [ ] **2.3 Magic Numbers and Strings**
-      
-Problem: 
-- Hardcoded values throughout the code.
-
-Examples:
-- `lib/views.dart:19`: `"Discover you wine"` (typo: "you" should be "your")
-- `lib/views.dart:343`: `"There was an issue with the summary - Please try again!"`
-- Multiple color values: `Color.fromARGB(255, 210, 8, 8)`
-
-Recommendation: 
-- Extract to constants:
-```dart
-class AppConstants {
-  static const String appTitle = "Discover your wine";
-  static const Color errorRed = Color.fromARGB(255, 210, 8, 8);
-  static const Duration snackBarDuration = Duration(seconds: 7);
-}
-```
-
+- [x] **2.3 Magic Numbers and Strings**
 
 ### 3. Maintainability
 
-- [ ] **3.1 Large Files**
-      
-Problem: 
-- Several files exceed recommended size limits:
-	- `orchestrator.dart`: ~550 lines
-	- `views.dart`: ~550 lines
-	- `winedata_registration.dart`: ~335 lines
-
-Recommendation: 
-- Split large files into smaller, focused modules.
+- [x] **3.1 Large Files** (new structure; no file bigger than 250 lines)
 
 - [ ] **3.2 Tight Coupling**
       
@@ -612,13 +554,7 @@ Recommendation:
 
 ### 9. Additional Issues
 
-- [ ] **9.1 Typo in UI**
-      
-Location: 
-- `lib/views.dart:19`
-```dart
-"Discover you wine"  // Should be "Discover your wine"
-```
+- [x] **9.1 Typo in UI**
 
 - [ ] **9.2 Unused Dependencies**
       
@@ -679,7 +615,7 @@ Recommendation:
 ### Critical (Fix Immediately)
 1. ✅ **Remove hardcoded API keys** - Security risk
 2. ✅ **Rotate exposed API keys** - Security risk
-3. -- **Add environment variable configuration** - Security and flexibility
+3. ✅ **Add environment variable configuration** - Security and flexibility
 
 ### High Priority
 1. ✅ **Refactor orchestrator.dart** - Improve maintainability
@@ -696,7 +632,7 @@ Recommendation:
 5. -- **Add tests** - Code quality
 
 ### Low Priority
-1. -- **Fix typos** - Polish
+1. ✅ **Fix typos** - Polish
 2. -- **Optimize AI usage** - Cost optimization
 3. -- **Add pagination** - Scalability
 4. -- **Improve offline support** - UX

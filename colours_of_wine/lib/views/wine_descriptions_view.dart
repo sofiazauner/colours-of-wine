@@ -29,8 +29,7 @@ extension WineScannerDescriptionView on _WineScannerPageState {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              "Wine Descriptions   ||",
+                            const Text(AppConstants.descriptionTitle,
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -45,8 +44,7 @@ extension WineScannerDescriptionView on _WineScannerPageState {
                                 Icons.edit_document,
                                 size: 18,
                               ),
-                              label: const Text(
-                                "Generate Summary + Image",
+                              label: const Text(AppConstants.generateSumAndImageButton,
                                 style: TextStyle(fontSize: 14),
                               ),
                               onPressed: () async {                   // close pop-up + generate summary/image
@@ -71,8 +69,7 @@ extension WineScannerDescriptionView on _WineScannerPageState {
                                     );
                                   });
                                 } catch (e) {
-                                  debugPrint(
-                                      "Error parsing summary result: $e");
+                                  debugPrint("Error parsing summary result: $e");
                                 }
                               },
                             ),
@@ -89,7 +86,7 @@ extension WineScannerDescriptionView on _WineScannerPageState {
                     Expanded(
                       child: results.isEmpty
                           ? const Center(
-                              child: Text("No descriptions found."),
+                              child: Text(AppConstants.noDescriptionsText),
                             )
                           : ListView.builder(
                               itemCount: results.length,
@@ -126,7 +123,7 @@ extension WineScannerDescriptionView on _WineScannerPageState {
                                           child: Text(
                                             item['url']!,
                                             style: const TextStyle(
-                                              color: Colors.blue,
+                                              color: AppConstants.urlColour,
                                               decoration:
                                                   TextDecoration.underline,
                                               fontSize: 13,

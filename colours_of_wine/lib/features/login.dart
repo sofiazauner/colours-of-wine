@@ -1,5 +1,7 @@
 /* login logic */
 
+import 'package:colours_of_wine/utils/app_constants.dart';
+import 'package:colours_of_wine/utils/snackbar_messages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';                           // for kIsWeb
 import 'package:firebase_auth/firebase_auth.dart';                  // for authentification (Google Sign-In)
@@ -80,11 +82,11 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         Image.asset('assets/logo.png', height: 230, fit: BoxFit.contain,),   // logo
         const SizedBox(height: 20),
-        Text("Sign in to start", style: Theme.of(context).textTheme.titleLarge,),
+        Text(AppConstants.signInText, style: Theme.of(context).textTheme.titleLarge,),
         const SizedBox(height: 30),
         ElevatedButton.icon( 
           icon: const Icon(Icons.login),
-          label: const Text("Sign in with Google"),
+          label: const Text(AppConstants.signInButton),
           onPressed: _signInWithGoogle,
         ),
       ],
@@ -95,7 +97,7 @@ class _LoginPageState extends State<LoginPage> {
     final user = await _signInWithGoogleImpl();
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to sign in"), behavior: SnackBarBehavior.floating,  duration: const Duration(seconds: 7), backgroundColor: Color.fromARGB(255, 210, 8, 8), margin: const EdgeInsets.all(50),),
+        const SnackBar(content: Text(SnackbarMessages.singin), behavior: SnackBarBehavior.floating,  duration: AppConstants.defaultSnackBarDuration, backgroundColor: AppConstants.errorRed, margin: const EdgeInsets.all(50),),
       );
     }
     return InitPage();

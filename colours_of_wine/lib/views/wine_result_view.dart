@@ -23,7 +23,7 @@ extension WineScannerResultViews on _WineScannerPageState {
                         "${e.key[0].toUpperCase()}${e.key.substring(1)}:", 
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
+                          color: AppConstants.resultTitleCol,
                           fontSize: 16,
                         ),
                       ),
@@ -34,7 +34,7 @@ extension WineScannerResultViews on _WineScannerPageState {
                         e.value.isEmpty ? "-" : e.value,             // if nothing found "-"
                         style: const TextStyle(
                           fontSize: 16,
-                          color: Color.fromARGB(255, 0, 0, 0),
+                          color: AppConstants.resultTextCol,
                         ),
                       ),
                     ),
@@ -61,10 +61,10 @@ extension WineScannerResultViews on _WineScannerPageState {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
               child: Text(
-                "Registered Information:",
+                AppConstants.wineCradTitle,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.normal,
-                      color: const Color.fromARGB(255, 0, 0, 0),
+                      color: AppConstants.resultTextCol,
                     ),
               ),
             ),
@@ -83,20 +83,20 @@ extension WineScannerResultViews on _WineScannerPageState {
                         : Icons.error,
                     size: 18,
                     color: _webResult!.approved
-                        ? Colors.green
-                        : Colors.red,
+                        ? AppConstants.successGreen
+                        : AppConstants.errorRed,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     _webResult!.approved
-                        ? "AI Summary:"
-                        : "There was an issue with the summary - Please try again!",
+                        ? AppConstants.summarySucc
+                        : AppConstants.summaryFail,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: _webResult!.approved
-                          ? Colors.green
-                          : Colors.red,
+                          ? AppConstants.successGreen
+                          : AppConstants.errorRed,
                     ),
                   ),
                 ],
@@ -114,7 +114,7 @@ extension WineScannerResultViews on _WineScannerPageState {
                 children: [
                   ElevatedButton.icon(                             // start web search
                     icon: const Icon(Icons.search),
-                    label: const Text("Get Wine Descriptions"),
+                    label: const Text(AppConstants.getDescrButton),
                     onPressed: () async {
                       final result = await _fetchWineDescription();
                       if (result.isEmpty) return;
@@ -126,7 +126,7 @@ extension WineScannerResultViews on _WineScannerPageState {
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.refresh),
-                    label: const Text("Try again"),
+                    label: const Text(AppConstants.tryAgainButton),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,

@@ -10,6 +10,8 @@ import 'package:intl/intl.dart';                          // for date formatting
 import 'package:colours_of_wine/models/models.dart';
 import 'package:colours_of_wine/config/config.dart';
 import 'package:colours_of_wine/services/wine_service.dart';
+import 'package:colours_of_wine/utils/snackbar_messages.dart';
+import 'package:colours_of_wine/utils/app_constants.dart';
 
 part '../views/wine_start_view.dart';
 part '../views/wine_history_view.dart';
@@ -86,10 +88,10 @@ class _WineScannerPageState extends State<WineScannerPage> {
       debugPrint("Sign-out error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Error while signing out - please try again!"),
+          content: Text(SnackbarMessages.singout),
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 5),
-          backgroundColor: Color.fromARGB(255, 210, 8, 8),
+          duration: AppConstants.defaultSnackBarDuration,
+          backgroundColor: AppConstants.errorRed,
           margin: EdgeInsets.all(50),
         ),
       );
@@ -104,7 +106,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromRGBO(255, 255, 255, 0),
+        backgroundColor: AppConstants.userEmailColour,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 0, left: 0, bottom: 30),
@@ -119,7 +121,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
           IconButton(
             padding: const EdgeInsets.only(bottom: 30),
             iconSize: 18,
-            tooltip: "Sign out",
+            tooltip: AppConstants.signOutButton,
             icon: const Icon(Icons.logout),
             onPressed: _signOut,
           ),

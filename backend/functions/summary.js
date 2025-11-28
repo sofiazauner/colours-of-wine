@@ -11,7 +11,6 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 // (TODO: Don't search for descriptions again, use the onse already fetched!)
 // --> Maybe merge the functions; get descriptions and summarize(+image) at the same time?
 
-
 // generate summary with loop of Writer and Reviewer until approved or max iterations reached 
 export const generateSummary = onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
@@ -59,14 +58,6 @@ export const generateSummary = onRequest(async (req, res) => {
   delete result.colors;
   return res.status(200).send(JSON.stringify(result));
 });
- 
-// (TODO: waiting for a single iteration takes tens of seconds, 2 is already
-// a stretch.  The original value was 25, but after 25 iterations even the
-// Buddha himself will uninstall the app.)
-// ^^^ above applies to flash, but that doesn't always work in the first
-// place.  Turns out flash lite does the thing in 4s with 2 iters.  Still
-// unclear what the ideal number is, extrapolating from the above 5 iters
-// are already 10s which feels annoying enough.
 
 // operate writer/reviewer-loop
 const MaxIterationCount = 5;

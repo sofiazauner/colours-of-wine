@@ -41,7 +41,7 @@ extension WineScannerCameraLogic on _WineScannerPageState {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text(
-                    "Upload Photos of Label",
+                    AppConstants.uploadTitel,
                     style: TextStyle(
                       fontWeight: FontWeight.normal,
                       fontSize: 20,
@@ -56,7 +56,7 @@ extension WineScannerCameraLogic on _WineScannerPageState {
                   ElevatedButton.icon(
                     // front label
                     icon: const Icon(Icons.upload_file, size: 20),
-                    label: const Text("Front Label"),
+                    label: const Text(AppConstants.uploadFrontLabelButton),
                     style: ElevatedButton.styleFrom(
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.symmetric(
@@ -75,14 +75,14 @@ extension WineScannerCameraLogic on _WineScannerPageState {
                   ),
                   if (frontBytes != null) ...[
                     const SizedBox(height: 6),
-                    const Text("✅ Front Label",
-                        style: TextStyle(color: Colors.green)),
+                    const Text(AppConstants.succFrontLabel,
+                        style: TextStyle(color: AppConstants.successGreen)),
                   ],
                   const SizedBox(height: 16),
                   // back label
                   ElevatedButton.icon(
                     icon: const Icon(Icons.upload_file, size: 20),
-                    label: const Text("Upload Back Label"),
+                    label: const Text(AppConstants.uploadBackLabelButton),
                     style: ElevatedButton.styleFrom(
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.symmetric(
@@ -101,8 +101,8 @@ extension WineScannerCameraLogic on _WineScannerPageState {
                   ),
                   if (backBytes != null) ...[
                     const SizedBox(height: 6),
-                    const Text("✅ Back Label",
-                        style: TextStyle(color: Colors.green)),
+                    const Text(AppConstants.succBackLabel,
+                        style: TextStyle(color: AppConstants.successGreen)),
                   ],
                 ],
               ),
@@ -112,17 +112,17 @@ extension WineScannerCameraLogic on _WineScannerPageState {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel"),
+                  child: const Text(AppConstants.cancelButton),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     if (frontBytes == null || backBytes == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text("Please upload both label photos!"),
+                          content: Text(SnackbarMessages.picMissing),
                           behavior: SnackBarBehavior.floating,
-                          duration: Duration(seconds: 6),
-                          backgroundColor: Color.fromARGB(255, 210, 8, 8),
+                          duration: AppConstants.defaultSnackBarDuration,
+                          backgroundColor: AppConstants.errorRed,
                           margin: EdgeInsets.all(50),
                         ),
                       );
@@ -135,7 +135,7 @@ extension WineScannerCameraLogic on _WineScannerPageState {
                     });
                     _showConfirmationDialog();
                   },
-                  child: const Text("Confirm"),
+                  child: const Text(AppConstants.confirmButton),
                 ),
               ],
             );
@@ -151,13 +151,13 @@ extension WineScannerCameraLogic on _WineScannerPageState {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Confirm Photos"),
+        title: const Text(AppConstants.confirmPhotosTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (_frontBytes != null) ...[
               const Text(
-                "Front Label:",
+                AppConstants.conftimFrontTitle,
                 style: TextStyle(
                   fontWeight: FontWeight.normal,
                   fontSize: 16,
@@ -168,7 +168,7 @@ extension WineScannerCameraLogic on _WineScannerPageState {
             ],
             if (_backBytes != null) ...[
               const Text(
-                "Back Label:",
+                AppConstants.conftimBackTitle,
                 style: TextStyle(
                   fontWeight: FontWeight.normal,
                   fontSize: 16,
@@ -184,14 +184,14 @@ extension WineScannerCameraLogic on _WineScannerPageState {
               Navigator.pop(context);     // closes window and reopens camera
               _takePhotos();
             },
-            child: const Text("Retake Photos"),
+            child: const Text(AppConstants.retakePicButton),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);     // closes window and starts LLM-analyzing
               _analyzeImages();
             },
-            child: const Text("Analyze Label"),
+            child: const Text(AppConstants.analysisButton),
           ),
         ],
       ),
@@ -215,11 +215,10 @@ extension WineScannerCameraLogic on _WineScannerPageState {
       debugPrint("Error with analysis: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              "Something went wrong while analyzing your wine label - Please try again!"),
+          content: Text(SnackbarMessages.analysisFailed),
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 7),
-          backgroundColor: Color.fromARGB(255, 210, 8, 8),
+          duration: AppConstants.defaultSnackBarDuration,
+          backgroundColor: AppConstants.errorRed,
           margin: EdgeInsets.all(50),
         ),
       );

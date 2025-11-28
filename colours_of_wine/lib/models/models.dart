@@ -69,10 +69,10 @@ class WineData {
   }
 
   final String name;
-  final String winery;           // Weingut
-  final String vintage;          // Jahrgang
-  final String grapeVariety;     // Rebsorte
-  final String vineyardLocation; // Anbaugebiet
+  final String winery;           
+  final String vintage;         
+  final String grapeVariety;     
+  final String vineyardLocation; 
   final String country;
 
   final allowedDomains = [       // filter descriptions form Internet and only allow trusted wine sites for web search

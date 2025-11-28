@@ -17,10 +17,10 @@ extension WineScannerSummaryLogic on _WineScannerPageState {
       debugPrint("Error while fetching summary: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Error retrieving summary - Please try again!"),
+          content: Text(SnackbarMessages.summaryFailed),
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 7),
-          backgroundColor: Color.fromARGB(255, 210, 8, 8),
+          duration: AppConstants.defaultSnackBarDuration,
+          backgroundColor: AppConstants.errorRed,
           margin: EdgeInsets.all(50),
         ),
       );

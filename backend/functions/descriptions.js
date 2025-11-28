@@ -106,7 +106,7 @@ export async function extractDescriptionsFromSerp(serpObj) {
         articleText: article.textContent,
       });
     } catch (err) {
-      console.error("Fehler bei", item.link, err);
+      console.error("Error in", item.link, err);
       descriptions.push({
         title: item.title,
         url: item.link,
