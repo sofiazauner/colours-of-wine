@@ -1,29 +1,20 @@
 /* fetch descriptions from web (serpAPi) */
 
-import { onRequest } from "firebase-functions/https";
 import logger from "firebase-functions/logger";
-import { getSerpKey, admin, searchCollection } from "./config.js";
+import { getSerpKey, admin, searchCollection, onWineRequest } from "./config.js";
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from 'jsdom';
 
 
 // get descriptions from internet
-export const fetchDescriptions = onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
+export const fetchDescriptions = onWineRequest(async (req, res, user) => {
   // check parameters
   const q = req.query.q;
-  const token = req.query.token;
-  const nameParam = req.query.name
+  const nameParam = req.query.name;
 
-   if (!q) {
+  if (!q) {
     logger.info("Wrong q", {q: req.query.q});
     return res.status(400).send("Query missing");
-  }
-  try {
-    await admin.auth().verifyIdToken(token);
-  } catch (e) {
-    logger.info("Wrong token", {token: token, error: e});
-    return res.status(401).send("Wrong token");
   }
   // call SerpApi
   const serpApiKey = await getSerpKey();
@@ -48,20 +39,12 @@ export const fetchDescriptions = onRequest(async (req, res) => {
   }
 
   let descriptions;
-    if (serpObj) {
-      descriptions = await extractDescriptionsFromSerp(serpObj);
-    }
-
-  let user;
-  try {
-    user = await admin.auth().verifyIdToken(token);
-  } catch (e) {
-    logger.info("Wrong token", {token: token, error: e});
-    return res.status(401).send("Wrong token");
+  if (serpObj) {
+    descriptions = await extractDescriptionsFromSerp(serpObj);
   }
+
   const uid = user.uid;
-  const name = nameParam || "No Name was Registered"
-  ;
+  const name = nameParam || "No Name was Registered";
 
   await searchCollection.add({
       uid: uid,

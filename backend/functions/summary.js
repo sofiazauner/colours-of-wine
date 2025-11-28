@@ -1,8 +1,7 @@
 /* summarize descriptions from web */
 
-import { onRequest } from "firebase-functions/https";
 import logger from "firebase-functions/logger";
-import { getSerpKey, getAi, GeminiModel, admin, WineComponents } from "./config.js";
+import { getSerpKey, getAi, GeminiModel, admin, WineComponents, onWineRequest } from "./config.js";
 import { extractDescriptionsFromSerp } from "./descriptions.js";
 import { generateImage } from "./image.js";
 import { z } from "zod";
@@ -12,19 +11,11 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 // --> Maybe merge the functions; get descriptions and summarize(+image) at the same time?
 
 // generate summary with loop of Writer and Reviewer until approved or max iterations reached 
-export const generateSummary = onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
+export const generateSummary = onWineRequest(async (req, res, user) => {
   // check parameters
   if (!req.query.q) {
     logger.info("Wrong q", {q: req.query.q});
     return res.status(400).send("Query missing");
-  }
-  const token = req.query.token;
-  try {
-    await admin.auth().verifyIdToken(token);
-  } catch (e) {
-    logger.info("Wrong token", {token: token, error: e});
-    return res.status(401).send("Wrong token");
   }
   // call SerpApi to get descriptions
   const serpApiKey = await getSerpKey(); 

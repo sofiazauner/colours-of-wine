@@ -138,7 +138,7 @@ class SnackBarHelper {
 }
 ```
 
-- [ ] **4.2 Token Verification Duplication**
+- [x] **4.2 Token Verification Duplication**
       
 Location:
 - All backend functions

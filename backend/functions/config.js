@@ -1,5 +1,6 @@
 /* configuration params for .js-files */
 
+import { onRequest } from "firebase-functions/https";
 import { setGlobalOptions } from "firebase-functions";
 import admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
@@ -56,3 +57,18 @@ export const WineComponents = [
   "Tannin",
   "Reifearomen",
 ];
+
+// tokens
+export function onWineRequest(fun) {
+  return onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    const user = verifyToken(req, res);
+    try {
+      const user = await admin.auth().verifyIdToken(req.query.token);
+      return await fun(req, res, user);
+    } catch (e) {
+      logger.info("Wrong token", {token: token, error: e});
+      return res.status(401).send("Wrong token");
+    }
+  });
+}

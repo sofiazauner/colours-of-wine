@@ -1,9 +1,8 @@
 /* data extraction from wine labels */
 
-import { onRequest } from "firebase-functions/https";
 import logger from "firebase-functions/logger";
 import { parseMultipart, getMultipartBoundary } from "@remix-run/multipart-parser/node";
-import { getAi, GeminiModel, admin } from "./config.js";
+import { getAi, GeminiModel, admin, onWineRequest } from "./config.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
@@ -56,10 +55,9 @@ async function labelUserImages(front, back) {
 
 
 // analysis process (uses the extraction process)
-export const callGemini = onRequest(async (req, res) => {
-  // allow CORS (for testing mainly)
-  res.set('Access-Control-Allow-Origin', '*');
+export const callGemini = onWineRequest(async (req, res, user) => {
   if (req.method === 'OPTIONS') {
+    /* TODO: ??? what is this */
     res.set('Access-Control-Allow-Methods', 'GET');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
     res.set('Access-Control-Max-Age', '3600');
@@ -84,13 +82,6 @@ export const callGemini = onRequest(async (req, res) => {
       token = part.text;
       break;
     }
-  }
-  let user;
-  try {
-    user = await admin.auth().verifyIdToken(token);
-  } catch (e) {
-    logger.info("Wrong token", {token: token, error: e});
-    return res.status(401).send("Wrong token");
   }
   const uid = user.uid;
   if (!front || !back) {
