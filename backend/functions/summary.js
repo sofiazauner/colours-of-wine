@@ -40,7 +40,13 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     return res.status(500).send("Failed to parse SERP response");
   }
   // generate summary using Gemini (with feedback loop)
-  const result = await buildValidatedSummaryFromSerp(serpObj);
+  let result;
+  try {
+    result = await buildValidatedSummaryFromSerp(serpObj);
+  } catch (e) {
+    logger.error("Failed to generate validated summary", { error: e });
+    return res.status(500).send("Failed to generate summary");
+  }
 
   // generate image based on colors embedded into summary
   // TODO: make this a separate endpoint so it can be loaded independently
@@ -160,7 +166,7 @@ WICHTIG:
     }
   });
 
-  return JSON.parse(response.text);
+  return WriterModelSchema.parse(JSON.parse(response.text));
 }
 
 
@@ -208,5 +214,5 @@ WICHTIG:
     }
   });
 
-  return JSON.parse(response.text);
+  return ReviewerModelSchema.parse(JSON.parse(response.text));
 }

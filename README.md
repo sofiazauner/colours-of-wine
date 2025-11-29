@@ -96,7 +96,6 @@ class FirebaseWineRepository implements WineRepository {
 }
 ```
 
-
 ### 4. Code Duplication
 
 ### Critical Issues
@@ -173,7 +172,7 @@ async function verifyToken(req, res, next) {
 }
 ```
 
-- [ ] **4.3 CORS Headers Duplication**
+- [x] **4.3 CORS Headers Duplication**
       
 Location:
 - All backend functions
@@ -472,7 +471,7 @@ const aiRateLimiter = rateLimit({
 });
 ```
 
-- [ ] **8.3 No Cost Monitoring**
+- [x] **8.3 No Cost Monitoring**
       
 Problem: 
 - No tracking of AI API usage or costs.
@@ -482,7 +481,9 @@ Recommendation:
 - Set up billing alerts
 - Track costs per user/operation
 
-- [ ] **8.4 No Error Handling for AI Failures**
+Already done inside Firebase.
+
+- [x] **8.4 No Error Handling for AI Failures**
       
 Problem:
 - Limited error handling for AI API failures.
@@ -495,7 +496,7 @@ Recommendation:
 - Handle invalid response errors
 - Provide fallback behavior
 
-- [ ] **8.5 Inefficient AI Usage**
+- [x] **8.5 Inefficient AI Usage**
       
 Problem: 
 - Summary generation makes multiple AI calls in a loop.
@@ -510,10 +511,12 @@ Issues:
 - No early exit conditions
 
 Recommendation: 
-- Consider reducing max iterations
-- Add early exit if quality threshold met
-- Cache intermediate results
-- Consider using faster model for reviewer
+- Consider reducing max iterations <-- we already have
+- Add early exit if quality threshold met <-- this already exists
+- Cache intermediate results <-- this is nonsense
+- Consider using faster model for reviewer <-- we use a fast model for both
+
+Working as designed.
 
 - [ ] **8.6 No Prompt Versioning**
       
@@ -538,7 +541,7 @@ Recommendation:
 - Limit input length
 - Validate input format
 
-- [ ] **8.8 No Response Validation**
+- [x] **8.8 No Response Validation**
       
 Problem: 
 - AI responses parsed without comprehensive validation.
@@ -551,12 +554,11 @@ Recommendation:
 - Validate required fields
 - Handle malformed responses gracefully
 
-
 ### 9. Additional Issues
 
 - [x] **9.1 Typo in UI**
 
-- [ ] **9.2 Unused Dependencies**
+- [x] **9.2 Unused Dependencies**
       
 Problem:
 - Some dependencies may not be used.

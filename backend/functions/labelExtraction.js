@@ -50,7 +50,7 @@ async function labelUserImages(front, back) {
       responseJsonSchema: LabelSchema,
     }
   });
-  return JSON.parse(response.text);
+  return LabelSchema.parse(JSON.parse(response.text));
 }
 
 
