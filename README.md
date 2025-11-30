@@ -100,7 +100,7 @@ class FirebaseWineRepository implements WineRepository {
 
 ### Critical Issues
 
-- [ ] **4.1 Repeated Error Handling Pattern**
+- [x] **4.1 Repeated Error Handling Pattern**
       
 Location:
 - Multiple files
@@ -203,7 +203,7 @@ class ApiClient {
 
 ### 5. Error Handling
 
-- [ ] **5.1 Inconsistent Error Handling**
+- [x] **5.1 Inconsistent Error Handling**
       
 Problem: 
 - Some errors are caught and shown to users, others are silently logged.
@@ -234,7 +234,7 @@ class Failure<T> extends Result<T> {
 }
 ```
 
-- [ ] **5.2 Missing Error Types**
+- [x] **5.2 Missing Error Types**
       
 Problem: 
 - All errors treated the same way.
@@ -254,7 +254,7 @@ class NetworkException implements Exception {
 }
 ```
 
-- [ ] **5.3 No Retry Logic**
+- [x] **5.3 No Retry Logic**
       
 Problem: 
 - Network failures immediately fail without retry.
@@ -580,7 +580,7 @@ Recommendation:
 - Add integration tests for API calls
 - Add widget tests for UI components
 
-- [ ] **9.4 Hardcoded Domain List**
+- [x] **9.4 Hardcoded Domain List**
       
 Location: 
 - `lib/model.dart:78-93`
@@ -622,9 +622,9 @@ Recommendation:
 ### High Priority
 1. ✅ **Refactor orchestrator.dart** - Improve maintainability
 2. ✅ **Create service layer** - Better architecture
-3. -- **Standardize error handling** - Better UX
-4. -- **Add comprehensive error handling** - Reliability
-5. -- **Implement rate limiting** - Cost control
+3. ✓ **Standardize error handling** - Better UX
+4. ✓ **Add comprehensive error handling** - Reliability
+5. ✓ **Implement rate limiting** - Cost control
 
 ### Medium Priority
 1. -- **Add documentation** - Developer experience

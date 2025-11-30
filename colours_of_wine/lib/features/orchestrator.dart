@@ -86,15 +86,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
       });
     } catch (e) {
       debugPrint("Sign-out error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(SnackbarMessages.singout),
-          behavior: SnackBarBehavior.floating,
-          duration: AppConstants.defaultSnackBarDuration,
-          backgroundColor: AppConstants.errorRed,
-          margin: EdgeInsets.all(50),
-        ),
-      );
+      SnackbarMessages.showErrorBar(context, SnackbarMessages.signout);
     }
   }
 

@@ -10,6 +10,25 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 // (TODO: Don't search for descriptions again, use the onse already fetched!)
 // --> Maybe merge the functions; get descriptions and summarize(+image) at the same time?
 
+const AllowedDomains = [
+  "winefolly.com",
+  "decanter.com",
+  "wineenthusiast.com",
+  "wine.com",
+  "vivino.com",
+  "wine-searcher.com",
+  "jancisrobinson.com",
+  "vinous.com",
+  "jamessuckling.com",
+  "winespectator.com",
+  "falstaff.de",
+  "wein.plus",
+  "cellartracker.com",
+  "vicampo.de"
+];
+
+const SiteFilter = AllowedDomains.map(x => `site:${x}`).join(" OR ");
+
 // generate summary with loop of Writer and Reviewer until approved or max iterations reached 
 export const generateSummary = onWineRequest(async (req, res, user) => {
   // check parameters
@@ -20,7 +39,8 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   // call SerpApi to get descriptions
   const serpApiKey = await getSerpKey(); 
   const serpUrl = new URL("https://serpapi.com/search.json"); 
-  serpUrl.searchParams.set("q", req.query.q); 
+  const query = `${req.query.q} wine description (${SiteFilter})`;
+  serpUrl.searchParams.set("q", query); 
   serpUrl.searchParams.set("api_key", serpApiKey); 
   serpUrl.searchParams.set("hl", "en"); 
 

@@ -96,9 +96,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<Widget> _signInWithGoogle() async {
     final user = await _signInWithGoogleImpl();
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(SnackbarMessages.singin), behavior: SnackBarBehavior.floating,  duration: AppConstants.defaultSnackBarDuration, backgroundColor: AppConstants.errorRed, margin: const EdgeInsets.all(50),),
-      );
+      SnackbarMessages.showErrorBar(context, SnackbarMessages.signin);
     }
     return InitPage();
   }

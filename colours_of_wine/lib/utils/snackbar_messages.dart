@@ -1,11 +1,15 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:colours_of_wine/utils/app_constants.dart';
+
 /* messages shown in the snackbars*/
 
 class SnackbarMessages {
 
   // loging in /out
-  static const String singin = 
+  static const String signin = 
     "Failed to sign in - Please try again!";
-  static const String singout = 
+  static const String signout = 
     "Failed to sign out - Please try again!";
 
   // label analysis
@@ -35,4 +39,23 @@ class SnackbarMessages {
   // generic
   static const String unknownError =
     "An unexpected error occurred - Please try again!";
+
+  static showErrorBar(BuildContext context, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text,
+          style: TextStyle(color: AppConstants.infoTextColour),
+          textAlign: TextAlign.center,
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: AppConstants.defaultSnackBarDuration,
+        backgroundColor: AppConstants.informationOrange,
+        margin: EdgeInsets.only(
+          bottom: 500,
+          left: 50,
+          right: 50,
+        ),
+      ),
+    );
+  }
 }

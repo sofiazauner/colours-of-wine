@@ -14,15 +14,7 @@ extension WineScannerHistoryLogic on _WineScannerPageState {
       return list;
     } catch (e) {
       debugPrint("Error retrieving wine descriptions: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(SnackbarMessages.descriptionFailed),
-          behavior: SnackBarBehavior.floating,
-          duration: AppConstants.defaultSnackBarDuration,
-          backgroundColor: AppConstants.errorRed,
-          margin: EdgeInsets.all(50),
-        ),
-      );
+      SnackbarMessages.showErrorBar(context, SnackbarMessages.descriptionFailed);
       return [];
     } finally {
       setState(() => _isLoading = false);
@@ -65,14 +57,7 @@ extension WineScannerHistoryLogic on _WineScannerPageState {
       );
     } catch (e) {
       debugPrint("Delete error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(SnackbarMessages.deleteFailed),
-          behavior: SnackBarBehavior.floating,
-          duration: AppConstants.defaultSnackBarDuration,
-          backgroundColor: AppConstants.errorRed,
-        ),
-      );
+      SnackbarMessages.showErrorBar(context, SnackbarMessages.deleteFailed);
     }
   }
 }

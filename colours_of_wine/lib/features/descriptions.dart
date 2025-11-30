@@ -9,22 +9,7 @@ extension WineScannerWebLogic on _WineScannerPageState {
     if (_wineData == null || _isLoading) return []; // check if data is available
 
     if (_wineData!.grapeVariety.isEmpty) {          // check if variety is given (mandatory)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(SnackbarMessages.missingGrapeVariety,
-            style: TextStyle(color: AppConstants.infoTextColour),
-            textAlign: TextAlign.center,
-          ),
-          behavior: SnackBarBehavior.floating,
-          duration: AppConstants.defaultSnackBarDuration,
-          backgroundColor: AppConstants.informationOrange,
-          margin: EdgeInsets.only(
-            bottom: 500,
-            left: 50,
-            right: 50,
-          ),
-        ),
-      );
+      SnackbarMessages.showErrorBar(context, SnackbarMessages.missingGrapeVariety);
       return [];
     }
 
@@ -35,15 +20,7 @@ extension WineScannerWebLogic on _WineScannerPageState {
       return result;
     } catch (e) {
       debugPrint("Error retrieving wine descriptions: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(SnackbarMessages.descriptionFailed),
-          behavior: SnackBarBehavior.floating,
-          duration: AppConstants.defaultSnackBarDuration,
-          backgroundColor: AppConstants.errorRed,
-          margin: EdgeInsets.all(50),
-        ),
-      );
+      SnackbarMessages.showErrorBar(context, SnackbarMessages.descriptionFailed);
       return [];
     } finally {
       if (mounted) {

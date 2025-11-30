@@ -75,23 +75,6 @@ class WineData {
   final String vineyardLocation; 
   final String country;
 
-  final allowedDomains = [       // filter descriptions form Internet and only allow trusted wine sites for web search
-      "winefolly.com",           // (TODO: put in backend!)
-      "decanter.com",
-      "wineenthusiast.com",
-      "wine.com",
-      "vivino.com",
-      "wine-searcher.com",
-      "jancisrobinson.com",
-      "vinous.com",
-      "jamessuckling.com",
-      "winespectator.com",
-      "falstaff.de",
-      "wein.plus",
-      "cellartracker.com",
-      "vicampo.de"
-      ];
-
   String toUriComponent() {      // encode the wine as a URI component
     final name = this.name;
     final weingut = this.winery;
@@ -99,9 +82,7 @@ class WineData {
     final rebsorte = this.grapeVariety;
     final anbaugebiet = this.vineyardLocation;
     final land = this.country;
-
-    final siteFilter = allowedDomains.map((d) => "site:$d").join(" OR ");
     
-    return Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land wine description ($siteFilter)");
+    return Uri.encodeComponent("$name $weingut $jahrgang $rebsorte $anbaugebiet $land");
   }
 }

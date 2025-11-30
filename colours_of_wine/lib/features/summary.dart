@@ -15,15 +15,7 @@ extension WineScannerSummaryLogic on _WineScannerPageState {
       return result;
     } catch (e) {
       debugPrint("Error while fetching summary: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(SnackbarMessages.summaryFailed),
-          behavior: SnackBarBehavior.floating,
-          duration: AppConstants.defaultSnackBarDuration,
-          backgroundColor: AppConstants.errorRed,
-          margin: EdgeInsets.all(50),
-        ),
-      );
+      SnackbarMessages.showErrorBar(context, SnackbarMessages.summaryFailed);
       return {};
     } finally {
       setState(() => _isLoading = false);

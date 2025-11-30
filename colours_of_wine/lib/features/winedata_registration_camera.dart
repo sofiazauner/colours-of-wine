@@ -117,15 +117,7 @@ extension WineScannerCameraLogic on _WineScannerPageState {
                 ElevatedButton(
                   onPressed: () {
                     if (frontBytes == null || backBytes == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(SnackbarMessages.picMissing),
-                          behavior: SnackBarBehavior.floating,
-                          duration: AppConstants.defaultSnackBarDuration,
-                          backgroundColor: AppConstants.errorRed,
-                          margin: EdgeInsets.all(50),
-                        ),
-                      );
+                      SnackbarMessages.showErrorBar(context, SnackbarMessages.picMissing);
                       return;
                     }
                     Navigator.pop(context);
@@ -213,15 +205,7 @@ extension WineScannerCameraLogic on _WineScannerPageState {
       });
     } catch (e) {
       debugPrint("Error with analysis: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(SnackbarMessages.analysisFailed),
-          behavior: SnackBarBehavior.floating,
-          duration: AppConstants.defaultSnackBarDuration,
-          backgroundColor: AppConstants.errorRed,
-          margin: EdgeInsets.all(50),
-        ),
-      );
+      SnackbarMessages.showErrorBar(context, SnackbarMessages.analysisFailed);
     } finally {
       if(mounted) {
         setState(() => _isLoading = false);

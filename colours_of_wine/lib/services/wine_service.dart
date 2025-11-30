@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:colours_of_wine/models/models.dart';
+import 'package:colours_of_wine/models/exceptions.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
@@ -16,6 +17,17 @@ class WineService {
     required this.getToken,
   });
 
+  Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {
+    for (int i = 0; i < maxRetries; i++) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (i == maxRetries - 1) rethrow;
+        await Future.delayed(Duration(seconds: i));
+      }
+    }
+    throw NetworkException("Max retries exceeded");
+  }
 
   // get wine descriptions
   Future<List<Map<String, String>>> fetchDescriptions(WineData wineData) async {
@@ -31,7 +43,7 @@ class WineService {
     );
     final response = await http.get(url);
     if (response.statusCode != 200) {
-      throw Exception("Search failed with ${response.statusCode}");
+      throw ApiException(response.statusCode, "Search failed");
     }
     final data = jsonDecode(response.body);
     final results = <Map<String, String>>[];
@@ -60,7 +72,7 @@ class WineService {
     );
     final response = await http.get(url);
     if (response.statusCode != 200) {
-      throw Exception("Failed to fetch summary (${response.statusCode})");
+      throw ApiException(response.statusCode, "Failed to fetch summary");
     }
     return jsonDecode(response.body);
   }
@@ -88,18 +100,14 @@ class WineService {
       filename: 'back.jpeg',
     ));
 
-    try {
-      final response = await request.send();
-      if (response.statusCode != 200) {
-        throw Exception("Failed to call Gemini (${response.statusCode})");
-      }
-      final text = await response.stream.bytesToString();
-      final decoded = jsonDecode(text);
-
-      return WineData(Map<String, String>.from(decoded));
-    } catch (e) {
-      throw Exception("Gemini Analysis failed: $e");
+    final response = await request.send();
+    if (response.statusCode != 200) {
+      throw ApiException(response.statusCode, "Failed to call Gemini");
     }
+    final text = await response.stream.bytesToString();
+    final decoded = jsonDecode(text);
+
+    return WineData(Map<String, String>.from(decoded));
   }
 
 
@@ -109,7 +117,7 @@ class WineService {
     final url = Uri.parse("$baseURL/searchHistory?token=$token");
     final response = await http.get(url);
     if (response.statusCode != 200) {
-      throw Exception("Search failed with ${response.statusCode}");
+      throw ApiException(response.statusCode, "Search failed");
     }
 
     final List<dynamic> data = jsonDecode(response.body);
@@ -134,7 +142,7 @@ class WineService {
 
     final response = await http.post(url);
     if (response.statusCode != 200) {
-      throw Exception("Error: Delete failed: ${response.statusCode}");
+      throw ApiException(response.statusCode, "Error: Delete failed");
     }
   }
 }
