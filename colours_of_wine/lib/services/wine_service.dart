@@ -2,20 +2,45 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:http/src/response.dart';
 import 'package:colours_of_wine/models/models.dart';
 import 'package:colours_of_wine/models/exceptions.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 
-class WineService {
+class WineRepository {
   final String baseURL;
   final Future<String> Function() getToken;
 
-  WineService({
+  WineRepository({
     required this.baseURL,
     required this.getToken,
   });
+
+  Future<Response> get(String endpoint, {String? query, String? name}) async {
+    final token = await getToken();
+    final url = Uri.parse("$baseURL/$endpoint").replace(
+      queryParameters: {
+        'token': token,
+        'q': query,
+        'name': name,
+      },
+    );
+    return await http.get(url);
+  }
+
+  Future<Response> post(String endpoint, String id) async {
+    final token = await getToken();
+    final url = Uri.parse("$baseURL/$endpoint").replace(
+      queryParameters: {
+        'token': token,
+        'id': id,
+      },
+    );
+
+    return await http.post(url);
+  }
 
   Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {
     for (int i = 0; i < maxRetries; i++) {
@@ -29,19 +54,16 @@ class WineService {
     throw NetworkException("Max retries exceeded");
   }
 
-  // get wine descriptions
+  /// Fetches the wine descriptions from Serp API.
+  ///
+  /// Takes a WineData received from the user.
+  /// 
+  /// Throws [ApiException] if the API call fails.
+  /// Throws [NetworkException] if network connectivity issues occur.
   Future<List<Map<String, String>>> fetchDescriptions(WineData wineData) async {
-    final token = await getToken();
     final query = wineData.toUriComponent();
     final wineName = wineData.name;
-    final url = Uri.parse("$baseURL/fetchDescriptions").replace(
-      queryParameters: {
-        'token': token,
-        'q': query,
-        'name': wineName,
-      },
-    );
-    final response = await http.get(url);
+    final response = await get("fetchDescriptions", query: query, name: wineName);
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Search failed");
     }
@@ -60,17 +82,13 @@ class WineService {
   }
 
 
-  // generate summary 
+  /// Generates a wine summary using Gemini AI Agentic Reviewer Loop.
+  /// 
+  /// Throws [ApiException] if the API call fails.
+  /// Throws [NetworkException] if network connectivity issues occur.
   Future<Map<String, dynamic>> generateSummary(WineData wineData) async {
-    final token = await getToken();
     final query = wineData.toUriComponent();
-    final url = Uri.parse("$baseURL/generateSummary").replace(
-      queryParameters: {
-        "token": token,
-        "q": query,
-      },
-    );
-    final response = await http.get(url);
+    final response = await get("generateSummary", query: query);
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Failed to fetch summary");
     }
@@ -78,8 +96,14 @@ class WineService {
   }
 
 
-  // analyze label pics
-  Future<WineData> analyzeLabel(Uint8List frontBytes, Uint8List backBytes,) async {
+  /// Analyzes wine label images using Gemini AI.
+  /// 
+  /// Takes front and back label images and extracts wine information
+  /// including name, winery, vintage, grape variety, etc.
+  /// 
+  /// Throws [ApiException] if the API call fails.
+  /// Throws [NetworkException] if network connectivity issues occur.
+  Future<WineData> analyzeLabel(Uint8List frontBytes, Uint8List backBytes) async {
     final token = await getToken();
     final request = http.MultipartRequest(
       'POST',
@@ -111,11 +135,12 @@ class WineService {
   }
 
 
-  // get wine history from database
+  /// Fetches the search history of the user.
+  /// 
+  /// Throws [ApiException] if the API call fails.
+  /// Throws [NetworkException] if network connectivity issues occur.
   Future<List<StoredWine>> getSearchHistory() async {
-    final token = await getToken();
-    final url = Uri.parse("$baseURL/searchHistory?token=$token");
-    final response = await http.get(url);
+    final response = await get("searchHistory");
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Search failed");
     }
@@ -130,17 +155,12 @@ class WineService {
   }
 
 
-  // delete stored wine entry from database
+  /// Deletes the stored wine entry from the database.
+  /// 
+  /// Throws [ApiException] if the API call fails.
+  /// Throws [NetworkException] if network connectivity issues occur.
   Future<void> deleteSearch(String id) async {
-    final token = await getToken();
-    final url = Uri.parse("$baseURL/deleteSearch").replace(
-      queryParameters: {
-        'token': token,
-        'id': id,
-      },
-    );
-
-    final response = await http.post(url);
+    final response = await post("deleteSearch", id);
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Error: Delete failed");
     }

@@ -29,7 +29,9 @@ const AllowedDomains = [
 
 const SiteFilter = AllowedDomains.map(x => `site:${x}`).join(" OR ");
 
-// generate summary with loop of Writer and Reviewer until approved or max iterations reached 
+/**
+ * Generate summary with loop of Writer and Reviewer until approved or max iterations reached.
+ */
 export const generateSummary = onWineRequest(async (req, res, user) => {
   // check parameters
   if (!req.query.q) {
@@ -76,8 +78,11 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   return res.status(200).send(JSON.stringify(result));
 });
 
-// operate writer/reviewer-loop
 const MaxIterationCount = 5;
+/**
+ * Operate the agentic writer/reviewer loop. Each iteration asks the reviewer to review the writer's output.
+ * If MaxIterationCount is exceeded, the loop is stopped.
+ */
 async function buildValidatedSummaryFromSerp(serpObj) {
   const descriptions = await extractDescriptionsFromSerp(serpObj);
 
@@ -92,6 +97,7 @@ async function buildValidatedSummaryFromSerp(serpObj) {
     obj = await runWriterModel(descriptions, review?.feedback, prev);
     review = await runReviewerModel(descriptions, obj);
     logger.info("review", review);
+    // Increase the iteration count by one. This prevents us from getting into an infinite loop.
     iteration++;
   } while (!review.approved && iteration < MaxIterationCount);
 
@@ -139,7 +145,7 @@ const WriterModelSchema = zodToJsonSchema(z.object({
   })()
 }));
 
-// writer-AI: generates Summary of descriptions (+ Feedback)
+/** Writer-AI Agent: generate a summary of descriptions and colors, optionally taking feedback from the Reviewer Agent. */
 async function runWriterModel(descriptions, feedback, prevObj) {
   const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
   const prompt = `
@@ -195,7 +201,7 @@ const ReviewerModelSchema = zodToJsonSchema(z.object({
   feedback: z.string(),
 }));
 
-// reviewer-AI: reviews Summary and provides feedback
+/** Reviewer-AI Agent: review a summary and colors and provide feedback. */
 async function runReviewerModel(descriptions, obj) {
   const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
   const prompt = `

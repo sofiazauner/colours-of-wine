@@ -199,7 +199,7 @@ extension WineScannerCameraLogic on _WineScannerPageState {
     setState(() => _isLoading = true);
 
     try {
-     final result = await _wineService.analyzeLabel(_frontBytes!, _backBytes!,); // give pics to gemini
+     final result = await _wineRepository.analyzeLabel(_frontBytes!, _backBytes!,); // give pics to gemini
       setState(() {
         _wineData = result;                             // results in map<attribute, data>
       });

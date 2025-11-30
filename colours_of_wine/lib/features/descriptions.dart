@@ -8,7 +8,8 @@ extension WineScannerWebLogic on _WineScannerPageState {
   Future<List<Map<String, String>>> _fetchWineDescription() async {
     if (_wineData == null || _isLoading) return []; // check if data is available
 
-    if (_wineData!.grapeVariety.isEmpty) {          // check if variety is given (mandatory)
+    final validationResult = WineDataValidator.validate(_wineData!);
+    if (!validationResult.ok) {          // check if variety is given (mandatory)
       SnackbarMessages.showErrorBar(context, SnackbarMessages.missingGrapeVariety);
       return [];
     }
@@ -16,7 +17,7 @@ extension WineScannerWebLogic on _WineScannerPageState {
     setState(() => _isLoading = true); // show loading screen
 
     try {
-      final result = await _wineService.fetchDescriptions(_wineData!);
+      final result = await _wineRepository.fetchDescriptions(_wineData!);
       return result;
     } catch (e) {
       debugPrint("Error retrieving wine descriptions: $e");

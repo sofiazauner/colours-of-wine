@@ -34,7 +34,7 @@ const LabelSchema = zodToJsonSchema(z.object({
   "Country": z.string(),
 }));
 
-// extraction Process
+/** Label front and back images. */
 async function labelUserImages(front, back) {
   const contents = [
     { text: GeminiLabelImagesPrompt },
@@ -54,15 +54,8 @@ async function labelUserImages(front, back) {
 }
 
 
-// analysis process (uses the extraction process)
+/** Ask Gemini to label the images. */
 export const callGemini = onWineRequest(async (req, res, user) => {
-  if (req.method === 'OPTIONS') {
-    /* TODO: ??? what is this */
-    res.set('Access-Control-Allow-Methods', 'GET');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    res.set('Access-Control-Max-Age', '3600');
-    return res.status(204).send('');
-  }
   const contentType = req.get("Content-Type");
   if (req.method != "POST" || !contentType) {
     logger.info("Wrong method", {method: req.method, contentType: contentType});

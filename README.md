@@ -78,7 +78,7 @@ Example:
 Recommendation: 
 - Use dependency injection and interfaces to decouple components.
 
-- [ ] **3.3 Missing Abstraction**
+- [x] **3.3 Missing Abstraction**
       
 Problem: 
 - Direct dependencies on Firebase, HTTP, and other services.
@@ -183,7 +183,7 @@ Problem:
 Recommendation: 
 - Use middleware or set globally in Firebase Functions configuration.
 
-- [ ] **4.4 Similar API Call Patterns**
+- [x] **4.4 Similar API Call Patterns**
       
 Location: 
 - Multiple Dart files
@@ -275,7 +275,7 @@ Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {
 }
 ```
 
-- [ ] **5.4 Missing Input Validation**
+- [x] **5.4 Missing Input Validation**
       
 Problem: 
 - Limited validation of user inputs and API responses.
@@ -298,7 +298,7 @@ class WineDataValidator {
 
 ### Critical Issues
 
-- [ ] **6.1 Missing API Documentation**
+- [x] **6.1 Missing API Documentation**
       
 Problem:
 - No documentation for backend API endpoints.
@@ -308,7 +308,7 @@ Recommendation:
 - Document request/response formats
 - Include example requests
 
-- [ ] **6.2 Minimal Code Documentation**
+- [x] **6.2 Minimal Code Documentation**
       
 Problem: 
 - Most functions lack documentation.
@@ -341,7 +341,7 @@ Recommendation:
 	- API documentation
 	- Development guidelines
 
-- [ ] **6.4 Missing Inline Comments for Complex Logic**
+- [x] **6.4 Missing Inline Comments for Complex Logic**
       
 Problem: 
 - Complex logic (e.g., summary generation feedback loop) lacks explanation.
@@ -379,6 +379,8 @@ Recommendation:
 - Resize images to reasonable dimensions
 - Use image caching
 
+Not applicable: we *download* the images, not *upload* them.
+
 - [ ] **7.3 Multiple Sequential API Calls**
       
 Problem:
@@ -395,6 +397,8 @@ final results = await Future.wait([
   // other independent calls
 ]);
 ```
+
+Not applicable: each operation always calls a single endpoint.
 
 - [ ] **7.4 No Pagination**
       
@@ -531,7 +535,7 @@ Recommendation:
 - Version prompts
 - Allow prompt updates without code deployment
 
-- [ ] **8.7 Missing Input Sanitization**
+- [x] **8.7 Missing Input Sanitization**
       
 Problem:
 - User inputs passed directly to AI without sanitization.
@@ -540,6 +544,8 @@ Recommendation:
 - Sanitize inputs
 - Limit input length
 - Validate input format
+
+This is not true. We do not pass user inputs to AI at all, the input always comes from websites.
 
 - [x] **8.8 No Response Validation**
       
@@ -599,6 +605,8 @@ Problem:
 Recommendation: 
 - Ensure all async operations show loading states.
 
+Which???
+
 - [ ] **9.6 No Offline Support**
       
 Problem: 
@@ -627,9 +635,9 @@ Recommendation:
 5. ✓ **Implement rate limiting** - Cost control
 
 ### Medium Priority
-1. -- **Add documentation** - Developer experience
-2. -- **Reduce code duplication** - Maintainability
-3. -- **Add input validation** - Data quality
+1. ✓ **Add documentation** - Developer experience
+2. ✓ **Reduce code duplication** - Maintainability
+3. ✓ **Add input validation** - Data quality
 4. -- **Implement caching** - Performance
 5. -- **Add tests** - Code quality
 

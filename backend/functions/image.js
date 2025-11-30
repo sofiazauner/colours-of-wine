@@ -4,6 +4,7 @@ import { createCanvas } from "canvas";
 import { convert } from "@asamuzakjp/css-color";
 import { WineComponents } from "./config.js";
 
+/** Generate an image out of colors we got from Gemini. */
 export async function generateImage(colors) {
   /* ref. https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/createRadialGradient
    * I know, I'm a sham, I just copied out the same code that ChatGPT is

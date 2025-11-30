@@ -3,7 +3,7 @@
 import logger from "firebase-functions/logger";
 import { admin, searchCollection, onWineRequest } from "./config.js";
 
-// retrieves the search history for a user based on their token
+/** Retrieve the search history for a user. */
 export const searchHistory = onWineRequest(async (req, res, user) => {
   const uid = user.uid;
   const queryResult = await searchCollection.where("uid", "==", uid).get();
@@ -21,7 +21,7 @@ export const searchHistory = onWineRequest(async (req, res, user) => {
 });
 
 
-// deletes a previous wine search from the user's history
+/** Delete a previous wine search from the user's history. */
 export const deleteSearch = onWineRequest(async (req, res, user) => {
   if (req.method !== "POST") {
     return res.status(405).send("Only POST allowed");

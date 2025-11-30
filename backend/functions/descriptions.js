@@ -5,8 +5,7 @@ import { getSerpKey, admin, searchCollection, onWineRequest } from "./config.js"
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from 'jsdom';
 
-
-// get descriptions from internet
+/** Get descriptions from the Internet. */
 export const fetchDescriptions = onWineRequest(async (req, res, user) => {
   // check parameters
   const q = req.query.q;
@@ -57,7 +56,7 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
 });
 
 
-// extract only decsription text from serp findings (TODO: maybe AI?)
+/** Extract only decsription text from serp findings. */
 export async function extractDescriptionsFromSerp(serpObj) {
   const descriptions = [];
 

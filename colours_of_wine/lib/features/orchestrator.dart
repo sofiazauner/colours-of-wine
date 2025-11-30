@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';                 // for kIsWeb
 import 'package:firebase_auth/firebase_auth.dart';        // for authentication (Google Sign-In)
 import 'package:intl/intl.dart';                          // for date formatting
 import 'package:colours_of_wine/models/models.dart';
+import 'package:colours_of_wine/models/validation.dart';
 import 'package:colours_of_wine/config/config.dart';
 import 'package:colours_of_wine/services/wine_service.dart';
 import 'package:colours_of_wine/utils/snackbar_messages.dart';
@@ -37,7 +38,7 @@ class WineScannerPage extends StatefulWidget {
 class _WineScannerPageState extends State<WineScannerPage> {
   _WineScannerPageState(this._user);
 
-  late final WineService _wineService;    // service layer "talking-point"
+  late final WineRepository _wineRepository;    // service layer "talking-point"
   final ImagePicker _picker = ImagePicker();
   Uint8List? _frontBytes;
   Uint8List? _backBytes;
@@ -54,7 +55,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
   void initState() {
     super.initState();
 
-    _wineService = WineService(
+    _wineRepository = WineRepository(
       baseURL: baseURL,                   // from config.dart
       getToken: _getToken,
     );

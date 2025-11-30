@@ -10,7 +10,7 @@ extension WineScannerHistoryLogic on _WineScannerPageState {
     setState(() => _isLoading = true);
 
     try {
-      final list = await _wineService.getSearchHistory();
+      final list = await _wineRepository.getSearchHistory();
       return list;
     } catch (e) {
       debugPrint("Error retrieving wine descriptions: $e");
@@ -32,7 +32,7 @@ extension WineScannerHistoryLogic on _WineScannerPageState {
   // delete previous search entry
   Future<void> _deleteStoredWine(String id) async {
     try {
-      await _wineService.deleteSearch(id);
+      await _wineRepository.deleteSearch(id);
 
       setState(() {
         _pastWineData!.removeWhere((w) => w.id == id); // remove from local list

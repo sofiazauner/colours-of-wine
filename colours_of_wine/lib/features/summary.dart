@@ -11,7 +11,7 @@ extension WineScannerSummaryLogic on _WineScannerPageState {
     }
     setState(() => _isLoading = true);
     try {
-      final result = await _wineService.generateSummary(_wineData!);
+      final result = await _wineRepository.generateSummary(_wineData!);
       return result;
     } catch (e) {
       debugPrint("Error while fetching summary: $e");
