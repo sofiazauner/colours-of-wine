@@ -24,7 +24,7 @@ class AppConstants {
 
   // ui buttons
   static const String closeButton = "Close";
-  static const String safeButton = "Safe";
+  static const String saveButton = "Save";
   static const String confirmButton = "Confirm";
   static const String cancelButton = "Cancel";
 

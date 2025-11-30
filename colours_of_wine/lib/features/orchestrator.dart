@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';                          // for date formatting
 import 'package:colours_of_wine/models/models.dart';
 import 'package:colours_of_wine/models/validation.dart';
 import 'package:colours_of_wine/config/config.dart';
-import 'package:colours_of_wine/services/wine_service.dart';
+import 'package:colours_of_wine/services/wine_repository.dart';
 import 'package:colours_of_wine/utils/snackbar_messages.dart';
 import 'package:colours_of_wine/utils/app_constants.dart';
 

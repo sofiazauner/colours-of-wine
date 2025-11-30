@@ -66,6 +66,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   try {
     result = await buildValidatedSummaryFromSerp(serpObj);
   } catch (e) {
+    console.error(e)
     logger.error("Failed to generate validated summary", { error: e });
     return res.status(500).send("Failed to generate summary");
   }
@@ -134,7 +135,7 @@ const CSSColors = [
   "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen"
 ];
 
-const WriterModelSchema = zodToJsonSchema(z.object({
+const WriterModelZod = z.object({
   summary: z.string(),
   colors: (function() {
     const obj = {};
@@ -143,7 +144,8 @@ const WriterModelSchema = zodToJsonSchema(z.object({
       obj[it] = colors;
     return z.object(obj);
   })()
-}));
+});
+const WriterModelSchema = zodToJsonSchema(WriterModelZod);
 
 /** Writer-AI Agent: generate a summary of descriptions and colors, optionally taking feedback from the Reviewer Agent. */
 async function runWriterModel(descriptions, feedback, prevObj) {
@@ -192,14 +194,15 @@ WICHTIG:
     }
   });
 
-  return WriterModelSchema.parse(JSON.parse(response.text));
+  return WriterModelZod.parse(JSON.parse(response.text));
 }
 
 
-const ReviewerModelSchema = zodToJsonSchema(z.object({
+const ReviewerModelZod = z.object({
   approved: z.boolean(),
   feedback: z.string(),
-}));
+});
+const ReviewerModelSchema = zodToJsonSchema(ReviewerModelZod);
 
 /** Reviewer-AI Agent: review a summary and colors and provide feedback. */
 async function runReviewerModel(descriptions, obj) {
@@ -240,5 +243,5 @@ WICHTIG:
     }
   });
 
-  return ReviewerModelSchema.parse(JSON.parse(response.text));
+  return ReviewerModelZod.parse(JSON.parse(response.text));
 }

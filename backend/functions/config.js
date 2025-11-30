@@ -71,7 +71,6 @@ export function onWineRequest(fun) {
       return res.status(204).send('');
     }
     res.set('Access-Control-Allow-Origin', '*');
-    const user = verifyToken(req, res);
     try {
       const user = await admin.auth().verifyIdToken(req.query.token);
       return await fun(req, res, user);

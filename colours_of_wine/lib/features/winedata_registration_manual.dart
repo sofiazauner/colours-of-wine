@@ -60,7 +60,7 @@ extension WineScannerManualLogic on _WineScannerPageState {
                   _wineData = WineData(data);
                 });
               },
-              child: const Text(AppConstants.safeButton),
+              child: const Text(AppConstants.saveButton),
             ),
           ],
         );

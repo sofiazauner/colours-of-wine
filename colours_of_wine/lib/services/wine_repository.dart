@@ -27,7 +27,12 @@ class WineRepository {
         'name': name,
       },
     );
-    return await http.get(url);
+    return await http.get(url).timeout(
+      const Duration(seconds: 30),
+      onTimeout: () {
+        throw NetworkException('Request timed out');
+      },
+    );
   }
 
   Future<Response> post(String endpoint, String id) async {
@@ -39,7 +44,12 @@ class WineRepository {
       },
     );
 
-    return await http.post(url);
+    return await http.post(url).timeout(
+      const Duration(seconds: 30),
+      onTimeout: () {
+        throw NetworkException('Request timed out');
+      },
+    );
   }
 
   Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {

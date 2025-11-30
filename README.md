@@ -366,7 +366,7 @@ Recommendation:
 - Cache label analysis results
 - Use image caching library
 
-- [ ] **7.2 Inefficient Image Handling**
+- [x] **7.2 Inefficient Image Handling**
       
 Problem:
 - Images are loaded into memory without optimization.
@@ -434,7 +434,7 @@ Recommendation:
 - Fetch full text on demand
 - Limit article text length
 
-- [ ] **7.6 No Request Timeout**
+- [x] **7.6 No Request Timeout**
       
 Problem: 
 - HTTP requests have no timeout, can hang indefinitely.

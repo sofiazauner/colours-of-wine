@@ -25,14 +25,15 @@ Versuche alle daten KORREKT herauszufinden.
 Wenn eine Information NICHT angegeben ist, lasse das Feld LEER!
 `;
 
-const LabelSchema = zodToJsonSchema(z.object({
+const LabelZod = z.object({
   "Name": z.string(),
   "Winery": z.string(),
   "Vintage": z.string(),
   "Grape Variety": z.string(),
   "Vineyard Location": z.string(),
   "Country": z.string(),
-}));
+});
+const LabelSchema = zodToJsonSchema(LabelZod);
 
 /** Label front and back images. */
 async function labelUserImages(front, back) {
@@ -50,7 +51,7 @@ async function labelUserImages(front, back) {
       responseJsonSchema: LabelSchema,
     }
   });
-  return LabelSchema.parse(JSON.parse(response.text));
+  return LabelZod.parse(JSON.parse(response.text));
 }
 
 
