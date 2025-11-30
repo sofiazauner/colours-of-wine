@@ -34,6 +34,7 @@
 
 - [ ] Vllt. message bei long loading-screens
 - [ ] Anzeige von Bild (momentan einf mit Summary unter Winecard, vllt eigenes Fenster oder so? und vllt größer)
+- [ ] Sometimes long loading screen after closing descriptions on x-button without getting descriptions (maybe error?)
 
 
 
@@ -55,7 +56,7 @@
       
 - [x] **2.3 Magic Numbers and Strings**
 
-### 3. Maintainability
+### 3. Maintainability ✅
 
 - [x] **3.1 Large Files** (new structure; no file bigger than 250 lines)
 
@@ -83,7 +84,7 @@
 
 - [x] **5.4 Missing Input Validation**
 
-### 6. Documentation
+### 6. Documentation ✅
 
 - [x] **6.1 Missing API Documentation**
 
@@ -93,56 +94,16 @@
 
 - [x] **6.4 Missing Inline Comments for Complex Logic**
 
-### 7. Performance Issues
+### 7. Performance Issues ✅
 
-- [ ] **7.1 No Caching**
-      
-Problem: 
-- No caching of API responses or images.
-
-Recommendation: 
-- Cache wine descriptions
-- Cache label analysis results
-- Use image caching library
+- [x] **7.1 No Caching** (done for descriptions -- no sense for labels, because pictures are (almost) always different (mostly taken with camera) && AI-Image should alwyas be different (I guess))
 
 - [x] **7.2 Inefficient Image Handling**
 
 - [x] **7.3 Multiple Sequential API Calls** (Not applicable: each operation always calls a single endpoint)
 
-- [ ] **7.4 No Pagination**
+- [ ] **7.4 No Pagination** & **7.5 Large Payloads** --> both points depend on the accessing of the websites, better to fix it, when that is fixed
       
-Problem: 
-- Search history loads all results at once.
-
-Location: 
-- `backend/functions/previousWines.js:20`
-
-Recommendation: 
-- Implement pagination:
-```javascript
-const limit = parseInt(req.query.limit) || 20;
-const offset = parseInt(req.query.offset) || 0;
-const queryResult = await searchCollection
-  .where("uid", "==", uid)
-  .orderBy("createdAt", "desc")
-  .limit(limit)
-  .offset(offset)
-  .get();
-```
-
-- [ ] **7.5 Large Payloads**
-      
-Problem: 
-- Full article text is fetched and stored for each description.
-
-Location:
-- `backend/functions/descriptions.js:100-106`
-
-Recommendation: 
-- Store only snippets initially
-- Fetch full text on demand
-- Limit article text length
-
 - [x] **7.6 No Request Timeout**
 
 
@@ -211,15 +172,7 @@ Recommendation:
 
 - [x] **9.4 Hardcoded Domain List**
 
-- [ ] **9.5 Missing Loading States**
-      
-Problem:
-- Some operations don't show loading indicators.
-
-Recommendation: 
-- Ensure all async operations show loading states.
-
-Which???
+- [x] **9.5 Missing Loading States** (also did not find any)
 
 - [ ] **9.6 No Offline Support**
       
@@ -252,7 +205,7 @@ Recommendation:
 1. ✅ **Add documentation** - Developer experience
 2. ✅ **Reduce code duplication** - Maintainability
 3. ✅ **Add input validation** - Data quality
-4. -- **Implement caching** - Performance
+4. ✅ **Implement caching** - Performance
 5. -- **Add tests** - Code quality
 
 ### Low Priority

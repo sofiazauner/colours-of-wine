@@ -13,6 +13,7 @@ import 'package:colours_of_wine/config/config.dart';
 import 'package:colours_of_wine/services/wine_repository.dart';
 import 'package:colours_of_wine/utils/snackbar_messages.dart';
 import 'package:colours_of_wine/utils/app_constants.dart';
+import 'package:colours_of_wine/services/description_cache.dart';
 
 part '../views/wine_start_view.dart';
 part '../views/wine_history_view.dart';
@@ -77,6 +78,7 @@ class _WineScannerPageState extends State<WineScannerPage> {
     try {
       await FirebaseAuth.instance.signOut();
       // clear data
+      DescriptionCache.clear();
       setState(() {
         _wineData = null;
         _pastWineData = null;

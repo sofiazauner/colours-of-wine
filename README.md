@@ -20,7 +20,7 @@ The goal is to provide an intuitive, visually driven interpretation of a wine’
 lib/
    config/                                      → Environment configuration (API Base URL)
    models/                                      → Data models (WineData, exceptions, ...)
-   services/                                    → HTTP + backend communication
+   services/                                    → HTTP + backend communication & caches
    features/                                    → central controller for the app state
      descriptions.dart
      login.dart
