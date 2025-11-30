@@ -136,24 +136,7 @@ Recommendation:
 
 - [x] **7.2 Inefficient Image Handling**
 
-- [ ] **7.3 Multiple Sequential API Calls**
-      
-Problem:
-- Some operations make multiple sequential API calls that could be parallelized.
-
-Example: 
-- `fetchDescriptions` and `generateSummary` could potentially be optimized.
-
-Recommendation: 
-- Use `Future.wait()` for independent operations:
-```dart
-final results = await Future.wait([
-  fetchDescriptions(query),
-  // other independent calls
-]);
-```
-
-Not applicable: each operation always calls a single endpoint.
+- [x] **7.3 Multiple Sequential API Calls** (Not applicable: each operation always calls a single endpoint)
 
 - [ ] **7.4 No Pagination**
       
@@ -221,13 +204,6 @@ const aiRateLimiter = rateLimit({
 - [x] **8.4 No Error Handling for AI Failures**
 
 - [x] **8.5 Inefficient AI Usage**
-      
-Recommendation: 
-- Consider reducing max iterations <-- we already have
-- Add early exit if quality threshold met <-- this already exists
-- Cache intermediate results <-- this is nonsense
-- Consider using faster model for reviewer <-- we use a fast model for both
-
 
 - [ ] **8.6 No Prompt Versioning**
       
@@ -242,9 +218,7 @@ Recommendation:
 - Version prompts
 - Allow prompt updates without code deployment
 
-- [x] **8.7 Missing Input Sanitization**
-
-This is not true. We do not pass user inputs to AI at all, the input always comes from websites.
+- [x] **8.7 Missing Input Sanitization** (This is not true. We do not pass user inputs to AI at all, the input always comes from websites)
 
 - [x] **8.8 No Response Validation**
       
