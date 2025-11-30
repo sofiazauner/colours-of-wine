@@ -19,7 +19,9 @@ export { admin };
 const db = getFirestore("wine-data");
 export const searchCollection = db.collection("/search-history");
 
-// gemini-/serApi-key access via Google Cloud Secret Manager
+/** 
+ * gemini-/serApi-key access via Google Cloud Secret Manager 
+ * */
 const client = new SecretManagerServiceClient();
 const secretCache = {};
 async function getSecret(name) {

@@ -1,8 +1,8 @@
-import 'dart:convert';
+/* messages shown in the snackbars*/
+
 import 'package:flutter/material.dart';
 import 'package:colours_of_wine/utils/app_constants.dart';
 
-/* messages shown in the snackbars*/
 
 class SnackbarMessages {
 

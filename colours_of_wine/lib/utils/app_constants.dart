@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+
 class AppConstants {
   // basic app layout
   static const String appTitle = "Discover your wine";
@@ -74,7 +75,7 @@ class AppConstants {
   static const String summaryFail = "There was an issue with the summary - Please try again!";
 
 
-  // snackbar
+  // snackbar + showing informations
   static const Duration defaultSnackBarDuration = Duration(seconds: 5);
   static const Color errorRed = Color.fromARGB(255, 210, 8, 8);
   static const Color informationOrange = Color.fromARGB(255, 184, 114, 17);

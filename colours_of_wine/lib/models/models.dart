@@ -1,7 +1,6 @@
 /* data-models */
 
 import 'package:flutter/material.dart'; 
-import 'package:colours_of_wine/models/exceptions.dart';
 
 
 // structure for storing wines

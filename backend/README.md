@@ -17,6 +17,5 @@ firebase deploy
 firebase emulators:start
 ```
 
-and then comment the cloudfunctions.net baseURL in the app's main.dart file,
-and uncomment the localhost one.  Then you can just edit the file and the
-functions update automatically.
+Choose the right cloudfunctions.net(production)/localhost(testing) baseURL in the app's config.dart file.
+Then you can just edit the file and the functions update automatically.
