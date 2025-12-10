@@ -57,48 +57,63 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
 
 
 /** Extract only decsription text from serp findings. */
+// maxPages limits how many results we process; must match the maximal amount of selectable sources for the user
 export async function extractDescriptionsFromSerp(serpObj) {
-  const descriptions = [];
-
   if (!serpObj.organic_results || !Array.isArray(serpObj.organic_results)) {
-    return descriptions;
+    return [];
   }
-  let maxPages = 1
-  serpObj.organic_results = serpObj.organic_results.slice(0, maxPages)
 
-  for (const item of serpObj.organic_results) {
-    if (!item.link) continue; // or item.url
+  const maxPages = 10;
+  const items = serpObj.organic_results.slice(0, maxPages);
+
+  // parallel handling of all 10 websites
+  const promises = items.map(async (item) => {
+    if (!item.link) {
+      return null;
+    }
 
     try {
       const res = await fetch(item.link);
       const html = await res.text();
-
       const dom = new JSDOM(html, {
         url: item.link,
-      });
-
+      })
       const reader = new Readability(dom.window.document);
-      const article = reader.parse(); 
+      const article = reader.parse();
 
-      descriptions.push({
+      if (!article) {
+        return {
+          title: item.title,
+          url: item.link,
+          snippet: item.snippet,
+          articleTitle: null,
+          articleText: null,
+          error: true,
+        };
+      }
+
+      return {
         title: item.title,
         url: item.link,
         snippet: item.snippet,
         articleTitle: article.title,
         articleText: article.textContent,
-      });
+      };
     } catch (err) {
       console.error("Error in", item.link, err);
-      descriptions.push({
+      return {
         title: item.title,
         url: item.link,
         snippet: item.snippet,
         articleTitle: null,
         articleText: null,
         error: true,
-      });
+      };
     }
-  }
+  });
 
-  return descriptions;
+  const results = await Promise.all(promises);
+
+  // filter out null entries
+  return results.filter((x) => x !== null);
 }
