@@ -10,10 +10,7 @@
 - [ ] Nicht nur englische Descriptions suchen, sondern auch deutsche (oder überhaupt keinen Sprachfilter - Gemini übersetzt intern?)
 
 ### Summary
-
-- [ ] Nicht nur Snippets verwenden, sondern ganze Descriptions auslesen (Readability.js?)
 - [ ] Nicht erneut nach Descriptions suchen, sondern die bereits gefundenen verwenden (vllt. als Parameter übergeben?)
-- [ ] Improve generation time (not sure if still relevant after model change?)
 
 ### Image Generation
 
