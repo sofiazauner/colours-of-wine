@@ -5,6 +5,27 @@ import { getSerpKey, admin, searchCollection, onWineRequest } from "./config.js"
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from 'jsdom';
 
+
+const AllowedDomains = [
+  "winefolly.com",
+  "decanter.com",
+  "wineenthusiast.com",
+  "wine.com",
+  "vivino.com",
+  "wine-searcher.com",
+  "jancisrobinson.com",
+  "vinous.com",
+  "jamessuckling.com",
+  "winespectator.com",
+  "falstaff.de",
+  "wein.plus",
+  "cellartracker.com",
+  "vicampo.de"
+];
+
+const SiteFilter = AllowedDomains.map(x => `site:${x}`).join(" OR ");
+
+
 /** Get descriptions from the Internet. */
 export const fetchDescriptions = onWineRequest(async (req, res, user) => {
   // check parameters
@@ -18,7 +39,8 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
   // call SerpApi
   const serpApiKey = await getSerpKey();
   const serpUrl = new URL("https://serpapi.com/search.json"); 
-  serpUrl.searchParams.set("q", q); 
+  const filteredQuery = `${q} (${SiteFilter})`;
+  serpUrl.searchParams.set("q", filteredQuery ); 
   serpUrl.searchParams.set("api_key", serpApiKey); 
   serpUrl.searchParams.set("hl", "en"); 
 
@@ -52,7 +74,19 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
    });
 
-  return res.status(200).send(serpText);
+   if (Array.isArray(serpObj.organic_results)) {
+    const max = Math.min(serpObj.organic_results.length, descriptions.length);
+    for (let i = 0; i < max; i++) {
+      const it = serpObj.organic_results[i];
+      const d = descriptions[i];
+
+      it.articleTitle = d.articleTitle ?? null;
+      it.articleText = d.articleText ?? null;
+      it.articleError = d.error ?? false;
+    }
+  }
+
+  return res.status(200).json(serpObj);
 });
 
 
@@ -63,7 +97,7 @@ export async function extractDescriptionsFromSerp(serpObj) {
     return [];
   }
 
-  const maxPages = 10;
+  const maxPages = 7;
   const items = serpObj.organic_results.slice(0, maxPages);
 
   // parallel handling of all 10 websites

@@ -21,14 +21,17 @@ class SnackbarMessages {
   // summary
   static const String summaryFailed =
     "An error occurred while generating the summary - Please try again!";
+  static const String noDescriptionsSelected =
+    "Please select at least one description to generate a summary!";
 
   // descriptions
   static const String descriptionFailed =
     "An error occurred while retrieving wine descriptions - Please try again!";
   static const String missingGrapeVariety =
     "Grape Variety is mandatory! Please make sure it gets registered and try again!";
-
-  // history
+  static const String tooMuchDescriptionsSelected =
+    "                                                                                                                                                       You can only select up to 7 descriptions!";
+  // history     
   static const String historyFailed =
     "An error occurred while retrieving your previous searches - Please try again!";
   static const String deleteFailed =

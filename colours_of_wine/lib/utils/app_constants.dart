@@ -47,11 +47,21 @@ class AppConstants {
   static const String startHistoryButton = "Previous searches";
   static const String searchInHistoryButton = "Search";
   static const String resetSearch = "Reset Search";
+
+  static const String settingsButton = "Settings";
  
+
+  // settings view
+  static const String settingsTitle = "Settings";
+  static const String defaultDescriptionSelectionText = "Default number of descriptions selected:";
+
 
   // description view
   static const String descriptionTitle = "Wine Descriptions   ||";
   static const String noDescriptionsText = "No descriptions found.";
+  static const String selectDescriptionsText = "Select up to 7 descriptions to be used for the summary.";
+  static const int defaultSelectedDescriptionsCount = 3;
+  static const int maximumDescriptionsForSummary = 7;
 
 
   // history view

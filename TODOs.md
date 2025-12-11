@@ -4,14 +4,6 @@
 
 - [ ] Rebsorte (evtl. weitere fehlende Daten?) mittels Gemini finden
 
-### Web Descriptioins
-
-- [ ] Descriptions filtern (momentan noch mit Domainnamen in der Suchanfrage - fuktioniert nicht so gut; wenn wir es so behalten, Logik davon in backend geben (Code Review))
-- [ ] Nicht nur englische Descriptions suchen, sondern auch deutsche (oder überhaupt keinen Sprachfilter - Gemini übersetzt intern?)
-
-### Summary
-- [ ] Nicht erneut nach Descriptions suchen, sondern die bereits gefundenen verwenden (vllt. als Parameter übergeben?)
-
 ### Image Generation
 
 - [ ] Mineralik-/Süße-Sidebar + Bubbles hinzufügen (Angabe von Anja)
@@ -23,15 +15,15 @@
 
 ### Database
 
-- [ ] Bild in der Db speichern (summary auch?)
 - [ ] Direkte Neugenerierung möglich (?)
-- [ ] "Reset search"- / "Close"-button oben fixieren (sonst zu lange scrollen, um Fenster schließen zu können)
+- [ ] History nach Datum sortieren
+- [ ] ganze descriptions speichern, aber nur die snippets anzeigen (?)
 
 ### Etc
 
 - [ ] Vllt. message bei long loading-screens
-- [ ] Anzeige von Bild (momentan einf mit Summary unter Winecard, vllt eigenes Fenster oder so? und vllt größer)
-- [ ] Sometimes long loading screen after closing descriptions on x-button without getting descriptions (maybe error?)
+- [ ] Anzeige von Bild
+
 
 
 

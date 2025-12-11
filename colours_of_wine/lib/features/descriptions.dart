@@ -14,16 +14,18 @@ extension WineScannerWebLogic on _WineScannerPageState {
       return [];
     }
 
-    setState(() => _isLoading = true); // show loading screen
-
-    final key = _wineData!.toUriComponent();       // check if wine-descriptions are already in cache
+    final key = _wineData!.toUriComponent();      // check if wine-descriptions are already in cache
     if (DescriptionCache.has(key)) { 
+      _selectedDescriptionsForSummary = [];
       return DescriptionCache.get(key)!;
     }
+
+    setState(() => _isLoading = true);            // show loading screen
 
     try {
       final result = await _wineRepository.fetchDescriptions(_wineData!);
       DescriptionCache.set(key, result);          // add descriptions to cache
+      _selectedDescriptionsForSummary = [];
       return result;
     } catch (e) {
       debugPrint("Error retrieving wine descriptions: $e");

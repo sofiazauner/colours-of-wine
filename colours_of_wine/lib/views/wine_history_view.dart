@@ -87,7 +87,7 @@ extension WineScannerViews on _WineScannerPageState {
     final List<StoredWine> visibleItems = _pastWineData!.where((w) => _searchQuery.isEmpty || w.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5),
-      child: ListView(
+      child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
@@ -144,27 +144,33 @@ extension WineScannerViews on _WineScannerPageState {
             ),
           ),
           const SizedBox(height: 16),
-          if (visibleItems.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(AppConstants.emptySearch,
-                style: TextStyle(fontStyle: FontStyle.italic),
-              ),
-            )
-          else
-            ...visibleItems.map(
-              (e) => Column(
-                children: [
-                  _buildStoredWineCard(e),
-                  const SizedBox(height: 1),
-                ],
-              ),
-            ),
-          const SizedBox(height: 1),
+          Expanded(
+            child: visibleItems.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      AppConstants.emptySearch,
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: visibleItems.length,
+                    itemBuilder: (context, index) {
+                      final e = visibleItems[index];
+                      return Column(
+                        children: [
+                          _buildStoredWineCard(e),
+                          const SizedBox(height: 1),
+                        ],
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 7),
           Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.only(bottom: 1),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,

@@ -52,6 +52,26 @@ class WineRepository {
     );
   }
 
+  Future<Response> postJson(String endpoint, {Map<String, dynamic>? body}) async {
+  final token = await getToken();
+  final url = Uri.parse("$baseURL/$endpoint").replace(
+    queryParameters: {
+      'token': token,
+    },
+  );
+
+  return await http.post(url, headers: const {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body ?? {}),
+    ).timeout(
+      const Duration(seconds: 30),
+      onTimeout: () {
+        throw NetworkException('Request timed out');
+      },
+    );
+  }
+
   Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {
     for (int i = 0; i < maxRetries; i++) {
       try {
@@ -85,6 +105,7 @@ class WineRepository {
           "title": item['title'] ?? "No title",
           "snippet": item['snippet'] ?? "",
           "url": item['link'] ?? "",
+          "articleText": item['articleText'] ?? "",
         });
       }
     }
@@ -92,16 +113,31 @@ class WineRepository {
   }
 
 
-  /// Generates a wine summary using Gemini AI Agentic Reviewer Loop.
+  /// Generates a wine summary using Gemini AI Agentic Reviewer Loop and selected descriptions.
   /// 
+  /// Requires [selectedDescriptions] to be non-empty. The backend does not
+  /// perform its own web search anymore.
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
-  Future<Map<String, dynamic>> generateSummary(WineData wineData) async {
+  Future<Map<String, dynamic>> generateSummary(WineData wineData, {required List<Map<String, String>> selectedDescriptions}) async {
+    if (selectedDescriptions.isEmpty) {
+      throw ArgumentError("At least one description must be selected to generate a summary.",);
+    }
+
     final query = wineData.toUriComponent();
-    final response = await get("generateSummary", query: query);
+    
+    final response = await postJson(
+      "generateSummary",
+      body: {
+        "q": query,
+        "descriptions": selectedDescriptions,
+      },
+    );
+
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Failed to fetch summary");
     }
+  
     return jsonDecode(response.body);
   }
 

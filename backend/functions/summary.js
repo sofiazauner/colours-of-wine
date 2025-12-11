@@ -1,98 +1,86 @@
 /* summarize descriptions from web */
 
 import logger from "firebase-functions/logger";
-import { getSerpKey, getAi, GeminiModel, admin, WineComponents, onWineRequest } from "./config.js";
-import { extractDescriptionsFromSerp } from "./descriptions.js";
+import { getAi, GeminiModel, admin, WineComponents, onWineRequest } from "./config.js";
 import { generateImage } from "./image.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
-// (TODO: Don't search for descriptions again, use the onse already fetched!)
-// --> Maybe merge the functions; get descriptions and summarize(+image) at the same time?
-
-const AllowedDomains = [
-  "winefolly.com",
-  "decanter.com",
-  "wineenthusiast.com",
-  "wine.com",
-  "vivino.com",
-  "wine-searcher.com",
-  "jancisrobinson.com",
-  "vinous.com",
-  "jamessuckling.com",
-  "winespectator.com",
-  "falstaff.de",
-  "wein.plus",
-  "cellartracker.com",
-  "vicampo.de"
-];
-
-const SiteFilter = AllowedDomains.map(x => `site:${x}`).join(" OR ");
 
 /**
  * Generate summary with loop of Writer and Reviewer until approved or max iterations reached.
- */
+ * Requires the client to send selected descriptions in the request body.
+ * No fallback: if no descriptions are provided, no summary is generated. 
+*/
 export const generateSummary = onWineRequest(async (req, res, user) => {
-  // check parameters
-  if (!req.query.q) {
-    logger.info("Wrong q", {q: req.query.q});
+  if (req.method !== "POST") {
+    return res.status(405).send("Method not allowed. Use POST.");
+  }
+
+  const q = req.body?.q;
+  const descriptionsFromClient = req.body?.descriptions;
+
+  if (!q) {
+    logger.info("Missing q in generateSummary", { q });
     return res.status(400).send("Query missing");
   }
-  // call SerpApi to get descriptions
-  const serpApiKey = await getSerpKey(); 
-  const serpUrl = new URL("https://serpapi.com/search.json"); 
-  const query = `${req.query.q} wine description (${SiteFilter})`;
-  serpUrl.searchParams.set("q", query); 
-  serpUrl.searchParams.set("api_key", serpApiKey); 
-  serpUrl.searchParams.set("hl", "en"); 
 
-  const serpRes = await fetch(serpUrl); 
-  const serpText = await serpRes.text(); 
-
-  if (serpRes.status != 200) { 
-    logger.info("SERP error", {status: serpRes.status, msg: serpText});
-    return res.status(500).send("Error in SERP");
-  } 
-  // parse response
-  let serpObj;
-  try {
-    serpObj = JSON.parse(serpText);
-  } catch (e) {
-    logger.error("Failed to parse SERP JSON", { error: e, body: serpText });
-    return res.status(500).send("Failed to parse SERP response");
+  if (!Array.isArray(descriptionsFromClient) || descriptionsFromClient.length === 0) {
+    logger.info("No descriptions provided for generateSummary", {
+      descriptions: descriptionsFromClient,
+    });
+    return res.status(400).send(
+      "At least one description must be provided to generate a summary."
+    );
   }
-  // generate summary using Gemini (with feedback loop)
+
+  const descriptionTexts = descriptionsFromClient.map((d) => {
+      if (!d) return "";
+      if (typeof d.articleText === "string" && d.articleText.trim().length > 0) {
+        return d.articleText.trim();
+      }
+      if (typeof d.snippet === "string" && d.snippet.trim().length > 0) {
+        return d.snippet.trim();
+      }
+      return "";
+    }).filter((t) => t.length > 0);
+
+  if (descriptionTexts.length === 0) {
+    logger.info("All provided descriptions were empty", { q });
+    return res.status(400).send("Provided descriptions do not contain usable text.");
+  }
+
   let result;
   try {
-    result = await buildValidatedSummaryFromSerp(serpObj);
+    result = await buildValidatedSummaryFromDescriptions(descriptionTexts);
   } catch (e) {
-    console.error(e)
+    console.error(e);
     logger.error("Failed to generate validated summary", { error: e });
     return res.status(500).send("Failed to generate summary");
   }
-
   // generate image based on colors embedded into summary
-  // TODO: make this a separate endpoint so it can be loaded independently
   const image = await generateImage(result.colors);
-  result.image = image.toString('base64');
+  result.image = image.toString("base64");
   delete result.colors;
+
   return res.status(200).send(JSON.stringify(result));
 });
 
-const MaxIterationCount = 5;
+
 /**
  * Operate the agentic writer/reviewer loop. Each iteration asks the reviewer to review the writer's output.
  * If MaxIterationCount is exceeded, the loop is stopped.
  */
-async function buildValidatedSummaryFromSerp(serpObj) {
-  const descriptions = await extractDescriptionsFromSerp(serpObj);
-
-  if (descriptions.length == 0)
-    throw new TypeError("No descriptions available from SERP to summarize");
+const MaxIterationCount = 5;
+async function buildValidatedSummaryFromDescriptions(descriptions) {
+  if (!Array.isArray(descriptions) || descriptions.length === 0) {
+    throw new TypeError("No descriptions available to summarize");
+  }
 
   const start = new Date();
   let obj, review, prev;
   let iteration = 1;
+
   do {
     prev = obj;
     obj = await runWriterModel(descriptions, review?.feedback, prev);

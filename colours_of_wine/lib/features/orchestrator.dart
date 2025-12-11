@@ -14,6 +14,7 @@ import 'package:colours_of_wine/services/wine_repository.dart';
 import 'package:colours_of_wine/utils/snackbar_messages.dart';
 import 'package:colours_of_wine/utils/app_constants.dart';
 import 'package:colours_of_wine/services/description_cache.dart';
+import 'package:another_flushbar/flushbar.dart';
 
 part '../views/wine_start_view.dart';
 part '../views/wine_history_view.dart';
@@ -24,6 +25,7 @@ part 'winedata_registration_manual.dart';
 part 'descriptions.dart';
 part 'summary.dart';
 part 'previous_searches.dart';
+part '../views/setting_view.dart';
 
 
 // startscreen
@@ -49,8 +51,10 @@ class _WineScannerPageState extends State<WineScannerPage> {
   final User _user;                       // user ID
   String? _token;
   WineWebResult? _webResult;              // descriptions found in web
-  final TextEditingController _searchController = TextEditingController();  // for searching previous winesearches in history view
+  final TextEditingController _searchController = TextEditingController();      // for searching previous winesearches in history view
   String _searchQuery = '';
+  List<Map<String, String>> _selectedDescriptionsForSummary = [];               // for summary generation
+  int defaultDescriptionCount = AppConstants.defaultSelectedDescriptionsCount;  // default
 
   @override
   void initState() {
@@ -114,11 +118,20 @@ class _WineScannerPageState extends State<WineScannerPage> {
             ),
           ),
           IconButton(
+            padding: const EdgeInsets.only(right:2, bottom: 30),
+            iconSize: 18,
+            icon: const Icon(Icons.logout),
+            constraints: const BoxConstraints(minWidth: 35, minHeight: 30),
+            tooltip: AppConstants.signOutButton,
+            onPressed: _signOut,
+          ),
+          IconButton(
             padding: const EdgeInsets.only(bottom: 30),
             iconSize: 18,
-            tooltip: AppConstants.signOutButton,
-            icon: const Icon(Icons.logout),
-            onPressed: _signOut,
+            icon: const Icon(Icons.settings),
+            constraints: const BoxConstraints(minWidth: 15, minHeight: 30),
+            tooltip: AppConstants.settingsButton,
+            onPressed: showSettingPopup,
           ),
         ],
       ),
