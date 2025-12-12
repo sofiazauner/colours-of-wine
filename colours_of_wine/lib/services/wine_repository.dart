@@ -153,10 +153,9 @@ class WineRepository {
     final token = await getToken();
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse("$baseURL/callGemini"),
+      Uri.parse("$baseURL/callGemini?token=$token"),
     );
 
-    request.fields['token'] = token;
     request.files.add(http.MultipartFile.fromBytes(
       'front',
       frontBytes,

@@ -1,5 +1,6 @@
 /* configuration params for .js-files */
 
+import logger from "firebase-functions/logger";
 import { onRequest } from "firebase-functions/https";
 import { setGlobalOptions } from "firebase-functions";
 import admin from "firebase-admin";
@@ -73,8 +74,9 @@ export function onWineRequest(fun) {
       return res.status(204).send('');
     }
     res.set('Access-Control-Allow-Origin', '*');
+    const token = req.query.token;
     try {
-      const user = await admin.auth().verifyIdToken(req.query.token);
+      const user = await admin.auth().verifyIdToken(token);
       return await fun(req, res, user);
     } catch (e) {
       logger.info("Wrong token", {token: token, error: e});
