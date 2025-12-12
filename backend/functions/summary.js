@@ -93,7 +93,7 @@ async function buildValidatedSummaryFromDescriptions(descriptions) {
   const end = new Date();
   logger.info(`Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`);
 
-  return {summary: obj.summary, colors: obj.colors, approved: review.approved};
+  return {summary: review.approved ? obj.summary : "", colors: obj.colors, approved: review.approved};
 }
 
 

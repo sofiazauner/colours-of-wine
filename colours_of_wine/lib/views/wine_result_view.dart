@@ -102,10 +102,12 @@ extension WineScannerResultViews on _WineScannerPageState {
                 ],
               ),
               const SizedBox(height: 6),
-              Text(
-                _webResult!.summary,
-                style: const TextStyle(fontSize: 14),
-              ),
+              if (_webResult!.approved) ...[
+                Text(
+                  _webResult!.summary,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
               const SizedBox(height: 20),
             ],
             Center(
