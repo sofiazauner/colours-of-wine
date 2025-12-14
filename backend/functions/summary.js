@@ -35,15 +35,15 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   }
 
   const descriptionTexts = descriptionsFromClient.map((d) => {
-      if (!d) return "";
-      if (typeof d.articleText === "string" && d.articleText.trim().length > 0) {
-        return d.articleText.trim();
-      }
-      if (typeof d.snippet === "string" && d.snippet.trim().length > 0) {
-        return d.snippet.trim();
-      }
-      return "";
-    }).filter((t) => t.length > 0);
+    if (!d) return "";
+    if (typeof d.articleText === "string" && d.articleText.trim().length > 0) {
+      return d.articleText.trim();
+    }
+    if (typeof d.snippet === "string" && d.snippet.trim().length > 0) {
+      return d.snippet.trim();
+    }
+    return "";
+  }).filter((t) => t.length > 0);
 
   if (descriptionTexts.length === 0) {
     logger.info("All provided descriptions were empty", { q });

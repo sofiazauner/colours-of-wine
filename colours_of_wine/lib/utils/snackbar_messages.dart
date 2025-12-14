@@ -38,6 +38,8 @@ class SnackbarMessages {
     "Failed to delete entry - Please try again!";
   static const String deleteSuccess =
     "Entry was successfully deleted!";
+  static const String wrongFileType =
+    "Only PDF and plain text files are supported.";
 
   // generic
   static const String unknownError =

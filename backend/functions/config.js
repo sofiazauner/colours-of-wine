@@ -75,12 +75,13 @@ export function onWineRequest(fun) {
     }
     res.set('Access-Control-Allow-Origin', '*');
     const token = req.query.token;
+    let user;
     try {
-      const user = await admin.auth().verifyIdToken(token);
-      return await fun(req, res, user);
+      user = await admin.auth().verifyIdToken(token);
     } catch (e) {
       logger.info("Wrong token", {token: token, error: e});
       return res.status(401).send("Wrong token");
     }
+    return await fun(req, res, user);
   });
 }

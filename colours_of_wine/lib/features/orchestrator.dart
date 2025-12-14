@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart'; 
 import 'package:flutter/foundation.dart';                 // for kIsWeb
 import 'package:firebase_auth/firebase_auth.dart';        // for authentication (Google Sign-In)

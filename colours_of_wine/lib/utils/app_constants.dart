@@ -49,7 +49,6 @@ class AppConstants {
   static const String resetSearch = "Reset Search";
 
   static const String settingsButton = "Settings";
- 
 
   // settings view
   static const String settingsTitle = "Settings";
@@ -60,6 +59,9 @@ class AppConstants {
   static const String descriptionTitle = "Wine Descriptions   ||";
   static const String noDescriptionsText = "No descriptions found.";
   static const String selectDescriptionsText = "Select up to 7 descriptions to be used for the summary.";
+  static const String addDescriptionText = "Add Description";
+  static const String chooseFileText = "Choose file";
+  static const String loadFromUrlText = "Load from URL";
   static const int defaultSelectedDescriptionsCount = 3;
   static const int maximumDescriptionsForSummary = 7;
 

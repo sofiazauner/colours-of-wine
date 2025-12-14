@@ -2,9 +2,10 @@
 
 import logger from "firebase-functions/logger";
 import { getSerpKey, admin, searchCollection, onWineRequest } from "./config.js";
+import { parseMultipart, getMultipartBoundary } from "@remix-run/multipart-parser/node";
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from 'jsdom';
-
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 const AllowedDomains = [
   "winefolly.com",
@@ -68,13 +69,13 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
   const name = nameParam || "No Name was Registered";
 
   await searchCollection.add({
-      uid: uid,
-      name: name,
-      descriptions: descriptions,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-   });
+    uid: uid,
+    name: name,
+    descriptions: descriptions,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
 
-   if (Array.isArray(serpObj.organic_results)) {
+  if (Array.isArray(serpObj.organic_results)) {
     const max = Math.min(serpObj.organic_results.length, descriptions.length);
     for (let i = 0; i < max; i++) {
       const it = serpObj.organic_results[i];
@@ -90,6 +91,78 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
 });
 
 
+/* https://stackoverflow.com/a/55263651 */
+async function getPageText(pdf, pageNo) {
+  const page = await pdf.getPage(pageNo);
+  const tokenizedText = await page.getTextContent();
+  return tokenizedText.items.map(token => token.str).join("");;
+};
+
+async function getPDFText(source) {
+  const pdf = await getDocument(source).promise;
+  const maxPages = pdf.numPages;
+  const pageTextPromises = [];
+  for (let pageNo = 1; pageNo <= maxPages; pageNo += 1) {
+    pageTextPromises.push(getPageText(pdf, pageNo));
+  }
+  const pageTexts = await Promise.all(pageTextPromises);
+  return pageTexts.join(" ");
+};
+
+/** Add custom description. */
+export const addFileDescription = onWineRequest(async (req, res, user) => {
+  const contentType = req.get("Content-Type");
+  if (req.method != "POST" || !contentType) {
+    logger.info("Wrong method", {method: req.method, contentType: contentType});
+    return res.status(400).send("Wrong request");
+  }
+  let name, bytes;
+  const boundary = getMultipartBoundary(req.get('content-type'));
+  for await (const part of parseMultipart(req.rawBody, {boundary: boundary})) {
+    name = part.filename;
+    bytes = part.arrayBuffer;
+  }
+  if (!name.toLowerCase().endsWith(".pdf")) {
+    return res.status(401).send("only PDF and txt descriptions allowed");
+  }
+  const text = await getPDFText(bytes);
+  return res.status(200).json(text);
+});
+
+
+/** Fetch a single page and extract its text. */
+async function extractSingleDescription(url) {
+  console.log("fetch", url)
+  const res = await fetch(url);
+  if (res.status != 200)
+    throw new TypeError(`Fetching link returned status code ${res.status}`);
+
+  const html = await res.text();
+  const dom = new JSDOM(html, {
+    url: url,
+  })
+  const reader = new Readability(dom.window.document);
+  return reader.parse();
+}
+
+/** Add custom description from URL. */
+export const addURLDescription = onWineRequest(async (req, res, user) => {
+  const url = decodeURIComponent(req.query.q);
+  let article;
+  try {
+    article = await extractSingleDescription(url);
+  } catch (e) {
+    logger.error("Failed to fetch URL", {url: url, error: e});
+    return res.status(500)
+  }
+  return res.status(200).json({
+    title: article.title,
+    text: article.textContent,
+    snippet: article.excerpt
+  });
+});
+
+
 /** Extract only decsription text from serp findings. */
 // maxPages limits how many results we process; must match the maximal amount of selectable sources for the user
 export async function extractDescriptionsFromSerp(serpObj) {
@@ -100,31 +173,10 @@ export async function extractDescriptionsFromSerp(serpObj) {
   const maxPages = 7;
   const items = serpObj.organic_results.slice(0, maxPages);
 
-  // parallel handling of all 10 websites
-  const promises = items.map(async (item) => {
-    if (!item.link) {
-      return null;
-    }
-
+  // parallel handling of all websites
+  const promises = items.filter(item => item.link != null).map(async (item) => {
     try {
-      const res = await fetch(item.link);
-      const html = await res.text();
-      const dom = new JSDOM(html, {
-        url: item.link,
-      })
-      const reader = new Readability(dom.window.document);
-      const article = reader.parse();
-
-      if (!article) {
-        return {
-          title: item.title,
-          url: item.link,
-          snippet: item.snippet,
-          articleTitle: null,
-          articleText: null,
-          error: true,
-        };
-      }
+      const article = await extractSingleDescription(item.link);
 
       return {
         title: item.title,
@@ -145,9 +197,5 @@ export async function extractDescriptionsFromSerp(serpObj) {
       };
     }
   });
-
-  const results = await Promise.all(promises);
-
-  // filter out null entries
-  return results.filter((x) => x !== null);
+  return await Promise.all(promises);
 }

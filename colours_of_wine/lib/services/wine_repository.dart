@@ -113,6 +113,49 @@ class WineRepository {
   }
 
 
+  /// Extracts a description from the uploaded file.
+  /// 
+  /// Throws [ApiException] if the API call fails.
+  /// Throws [NetworkException] if network connectivity issues occur.
+  Future<String> addFileDescription(Uint8List bytes, String name) async {
+    final token = await getToken();
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse("$baseURL/addFileDescription?token=$token"),
+    );
+
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      contentType: MediaType.parse('application/octet-stream'),
+      filename: name,
+    ));
+
+    final response = await request.send();
+    if (response.statusCode != 200) {
+      throw ApiException(response.statusCode, "Failed to add description");
+    }
+    return await response.stream.bytesToString();
+  }
+
+
+  /// Extracts a description from the URL supplied.
+  /// 
+  /// Throws [ApiException] if the API call fails.
+  /// Throws [NetworkException] if network connectivity issues occur.
+  Future<(String, String, String)> addURLDescription(String url) async {
+    final query = Uri.encodeComponent(url);
+    final response = await get("addURLDescription", query: query);
+    if (response.statusCode != 200) {
+      throw ApiException(response.statusCode, "Failed to load URL");
+    }
+
+    final res = jsonDecode(response.body);
+
+    return (res["title"].toString(), res["text"].toString(), res["snippet"].toString());
+  }
+
+
   /// Generates a wine summary using Gemini AI Agentic Reviewer Loop and selected descriptions.
   /// 
   /// Requires [selectedDescriptions] to be non-empty. The backend does not
