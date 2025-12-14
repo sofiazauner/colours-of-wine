@@ -243,10 +243,12 @@ extension WineScannerDescriptionView on _WineScannerPageState {
   }
 
   void _showAddDescriptionPopup(void Function(void Function()) setStateParentDialog, List<Map<String, String>> results) {
+    final _context = context;
     showDialog(
       context: context,
       builder: (context) {
         final urlController = TextEditingController();
+        String error = "";
 
         return StatefulBuilder(
           builder: (context, setStateDialog) {
@@ -303,17 +305,32 @@ extension WineScannerDescriptionView on _WineScannerPageState {
                           ),
                           onPressed: () async {
                             final url = urlController.text;
-                            final (title, text, snippet) = await _wineRepository.addURLDescription(url);
-                            final item = {
-                              "title": title,
-                              "snippet": snippet,
-                              "url": url,
-                              "articleText": text,
-                            };
-                            setStateParentDialog(() => results.add(item));
-                            Navigator.pop(context);
+                            try {
+                              final (title, text, snippet) = await _wineRepository.addURLDescription(url);
+                              final item = {
+                                "title": title,
+                                "snippet": snippet,
+                                "url": url,
+                                "articleText": text,
+                              };
+                              setStateParentDialog(() => results.insert(0, item));
+                              Navigator.pop(context);
+                            } catch (e) {
+                              debugPrint("Error while fetching summary: $e");
+                              setStateDialog(() => error = SnackbarMessages.urlFetchFailed);
+                            }
                           },
-                        )
+                        ),
+                        if (error != "") ...[
+                          const SizedBox(width: 5),
+                          Text(
+                            error,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -341,11 +358,15 @@ extension WineScannerDescriptionView on _WineScannerPageState {
                               String text = "";
                               print("name $name");
                               if (name.toLowerCase().endsWith(".pdf")) {
-                                text = await _wineRepository.addFileDescription(bytes, name);
+                                try {
+                                  text = await _wineRepository.addFileDescription(bytes, name);
+                                } catch (e) {
+                                  setStateDialog(() => error = SnackbarMessages.cannotReadPdf);
+                                }
                               } else if (name.toLowerCase().endsWith(".txt")) {
                                 text = utf8.decode(bytes);
                               } else {
-                                SnackbarMessages.showErrorBar(context, SnackbarMessages.wrongFileType);
+                                setStateDialog(() => error = SnackbarMessages.wrongFileType);
                               }
                               final item = {
                                 "title": name,
@@ -353,7 +374,7 @@ extension WineScannerDescriptionView on _WineScannerPageState {
                                 "url": "",
                                 "articleText": text,
                               };
-                              setStateParentDialog(() => results.add(item));
+                              setStateParentDialog(() => results.insert(0, item));
                               Navigator.pop(context);
                             }
                           },

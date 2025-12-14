@@ -40,6 +40,10 @@ class SnackbarMessages {
     "Entry was successfully deleted!";
   static const String wrongFileType =
     "Only PDF and plain text files are supported.";
+  static const String urlFetchFailed =
+    "Cannot fetch data from this website.";
+  static const String cannotReadPdf =
+    "Cannot read this PDF file.";
 
   // generic
   static const String unknownError =

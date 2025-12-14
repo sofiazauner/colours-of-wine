@@ -153,7 +153,7 @@ export const addURLDescription = onWineRequest(async (req, res, user) => {
     article = await extractSingleDescription(url);
   } catch (e) {
     logger.error("Failed to fetch URL", {url: url, error: e});
-    return res.status(500)
+    return res.status(500).send("Error fetching URL");
   }
   return res.status(200).json({
     title: article.title,
