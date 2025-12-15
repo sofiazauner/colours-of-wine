@@ -18,14 +18,20 @@ class WineRepository {
     required this.getToken,
   });
 
-  Future<Response> get(String endpoint, {String? query, String? name}) async {
+  Future<Response> get(String endpoint, {String? query, String? name, String? scope,}) async {
     final token = await getToken();
-    final url = Uri.parse("$baseURL/$endpoint").replace(
-      queryParameters: {
+    final params = <String, String?>{
         'token': token,
         'q': query,
         'name': name,
-      },
+        'scope': scope,
+      };
+
+    // Remove nulls to avoid sending literal "null" strings.
+    params.removeWhere((_, v) => v == null);
+
+    final url = Uri.parse("$baseURL/$endpoint").replace(
+      queryParameters: params,
     );
     return await http.get(url).timeout(
       const Duration(seconds: 30),
@@ -227,8 +233,8 @@ class WineRepository {
   /// 
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
-  Future<List<StoredWine>> getSearchHistory() async {
-    final response = await get("searchHistory");
+  Future<List<StoredWine>> getSearchHistory({String scope = 'mine'}) async {
+    final response = await get("searchHistory", scope: scope);
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Search failed");
     }

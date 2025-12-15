@@ -10,7 +10,9 @@ extension WineScannerHistoryLogic on _WineScannerPageState {
     setState(() => _isLoading = true);
 
     try {
-      final list = await _wineRepository.getSearchHistory();
+      final scope =
+      _collectionScope == WineCollectionScope.mine ? 'mine' : 'others';
+      final list = await _wineRepository.getSearchHistory(scope: scope);
       return list;
     } catch (e) {
       debugPrint("Error retrieving wine descriptions: $e");

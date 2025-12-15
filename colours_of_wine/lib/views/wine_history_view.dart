@@ -10,6 +10,7 @@ extension WineScannerViews on _WineScannerPageState {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Stack(
         children: [
+          if (_collectionScope == WineCollectionScope.mine)
           Positioned(
             right: 6,
             top: 6,
@@ -92,7 +93,9 @@ extension WineScannerViews on _WineScannerPageState {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
             child: Text(
-              AppConstants.historyTitle,
+              _collectionScope == WineCollectionScope.mine
+                  ? AppConstants.historyTitle
+                  : 'Andere Weine',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.normal,
                     color: AppConstants.redEmoji,

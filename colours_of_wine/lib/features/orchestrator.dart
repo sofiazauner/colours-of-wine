@@ -28,6 +28,10 @@ part 'summary.dart';
 part 'previous_searches.dart';
 part '../views/setting_view.dart';
 
+// Which dataset the user wants to browse in the app.
+// "mine" = personal wines (default)
+// "others" = other/public wines (if supported by backend)
+enum WineCollectionScope { mine, others }
 
 // startscreen
 class WineScannerPage extends StatefulWidget {
@@ -57,6 +61,10 @@ class _WineScannerPageState extends State<WineScannerPage> {
   List<Map<String, String>> _selectedDescriptionsForSummary = [];               // for summary generation
   int defaultDescriptionCount = AppConstants.defaultSelectedDescriptionsCount;  // default
 
+  // User-selected scope (shown via popup on first render).
+  WineCollectionScope _collectionScope = WineCollectionScope.mine;
+  bool _hasShownScopeDialog = false;
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +72,83 @@ class _WineScannerPageState extends State<WineScannerPage> {
     _wineRepository = WineRepository(
       baseURL: baseURL,                   // from config.dart
       getToken: _getToken,
+    );
+
+    // Show scope selector once when the page is first displayed.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showCollectionScopeDialogIfNeeded();
+    });
+  }
+
+  Future<void> _showCollectionScopeDialogIfNeeded() async {
+    if (!mounted || _hasShownScopeDialog) return;
+    _hasShownScopeDialog = true;
+    await _showCollectionScopeDialog(force: true);
+  }
+
+  Future<void> _showCollectionScopeDialog({required bool force}) async {
+    if (!mounted) return;
+
+    WineCollectionScope tempScope = _collectionScope;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !force,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Weinauswahl'),
+          content: StatefulBuilder(
+            builder: (context, setLocalState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<WineCollectionScope>(
+                    title: const Text('Eigene Weine'),
+                    subtitle: const Text('Deine persönlichen Suchergebnisse'),
+                    value: WineCollectionScope.mine,
+                    groupValue: tempScope,
+                    onChanged: (v) => setLocalState(() => tempScope = v!),
+                  ),
+                  RadioListTile<WineCollectionScope>(
+                    title: const Text('Andere Weine'),
+                    subtitle:
+                    const Text('Öffentliche/andere Einträge (falls verfügbar)'),
+                    value: WineCollectionScope.others,
+                    groupValue: tempScope,
+                    onChanged: (v) => setLocalState(() => tempScope = v!),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            if (!force)
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Abbrechen'),
+              ),
+            ElevatedButton(
+              onPressed: () {
+                // Closing the dialog is always safe (the dialog context is still valid),
+                // but setState must only be called if the State is still mounted.
+                if (mounted) {
+                  setState(() {
+                    _collectionScope = tempScope;
+
+                    // If the history view is currently open, refresh it the next time it is shown.
+                    _pastWineData = null;
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                }
+
+                Navigator.of(context).pop();
+              },
+              child: const Text('Weiter'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -108,6 +193,18 @@ class _WineScannerPageState extends State<WineScannerPage> {
       appBar: AppBar(
         backgroundColor: AppConstants.userEmailColour,
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 30, left: 6, right: 2),
+            child: TextButton(
+              onPressed: () => _showCollectionScopeDialog(force: false),
+              child: Text(
+                _collectionScope == WineCollectionScope.mine
+                    ? 'Eigene Weine'
+                    : 'Andere Weine',
+                style: const TextStyle(color: Colors.black87),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 0, left: 0, bottom: 30),
             child: Center(
