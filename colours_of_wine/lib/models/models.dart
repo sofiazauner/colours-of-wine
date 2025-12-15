@@ -8,15 +8,27 @@ class StoredWine {
   final String id;
   final String name;
   final List<String> descriptions;
+
+  // persisted visualization and summary
+  final String summary;
+  final bool approved;
+  final String? image; // base64 jpeg (200x200) or null if not generated yet
+
   final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   StoredWine({
     required this.id, 
     required this.name,
     required this.descriptions,
-    this.createdAt,});
+    this.summary = "",
+    this.approved = false,
+    this.image,
+    this.createdAt,
+    this.updatedAt,
+  });
 
-   factory StoredWine.fromJson(Map<String, dynamic> json) {
+  factory StoredWine.fromJson(Map<String, dynamic> json) {
     final rawList = json['descriptions'];
     final List<String> descriptions = rawList is List
         ? rawList.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty).toList()
@@ -25,8 +37,14 @@ class StoredWine {
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       descriptions: descriptions,
+      summary: (json['summary'] ?? '').toString(),
+      approved: json['approved'] == true,
+      image: json['image'] is String ? json['image'] as String : null,
       createdAt: json['createdAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(json['createdAt'])
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['updatedAt'])
           : null,
     );
   }

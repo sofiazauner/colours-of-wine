@@ -1,6 +1,6 @@
 /* logic for getting wine descriptions from the internet */
 
-part of 'orchestrator.dart';
+part of orchestrator;
 
 extension WineScannerWebLogic on _WineScannerPageState {
 
@@ -20,13 +20,20 @@ extension WineScannerWebLogic on _WineScannerPageState {
       return DescriptionCache.get(key)!;
     }
 
-    setState(() => _isLoading = true);            // show loading screen
+    if (!mounted) return [];
+    setState(() => _isLoading = true);
 
     try {
-      final result = await _wineRepository.fetchDescriptions(_wineData!);
-      DescriptionCache.set(key, result);          // add descriptions to cache
+      // fetchDescriptions returns (historyId, descriptions)
+      final (historyId, descriptions) =
+      await _wineRepository.fetchDescriptions(_wineData!);
+
+      // store history id for later summary persistence
+      _currentHistoryId = historyId;
+
+      DescriptionCache.set(key, descriptions);
       _selectedDescriptionsForSummary = [];
-      return result;
+      return descriptions;
     } catch (e) {
       debugPrint("Error retrieving wine descriptions: $e");
       SnackbarMessages.showErrorBar(context, SnackbarMessages.descriptionFailed);

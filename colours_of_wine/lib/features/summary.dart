@@ -1,6 +1,6 @@
 /* logic for summarizing descriptions */
 
-part of 'orchestrator.dart';
+part of orchestrator;
 
 extension WineScannerSummaryLogic on _WineScannerPageState {
   
@@ -13,17 +13,21 @@ extension WineScannerSummaryLogic on _WineScannerPageState {
       SnackbarMessages.showErrorBar(context, SnackbarMessages.noDescriptionsSelected);
       return {};
     }
+
+    if (!mounted) return {};
     setState(() => _isLoading = true);
     
     try {
-      final result = await _wineRepository.generateSummary(_wineData!,  selectedDescriptions: _selectedDescriptionsForSummary);
+      final result = await _wineRepository.generateSummary(_wineData!, selectedDescriptions: _selectedDescriptionsForSummary, historyId: _currentHistoryId!,);
       return result;
     } catch (e) {
       debugPrint("Error while fetching summary: $e");
       SnackbarMessages.showErrorBar(context, SnackbarMessages.summaryFailed);
       return {};
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }

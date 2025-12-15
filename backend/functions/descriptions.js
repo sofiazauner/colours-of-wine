@@ -68,12 +68,18 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
   const uid = user.uid;
   const name = nameParam || "No Name was Registered";
 
-  await searchCollection.add({
+  // Create history entry now (later we will update the same document with summary + image)
+  const docRef = await searchCollection.add({
     uid: uid,
     name: name,
     descriptions: descriptions,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
+
+  // Attach created history document id so the client can later persist summary/image into the same entry
+  if (serpObj) {
+    serpObj.historyId = docRef.id;
+  }
 
   if (Array.isArray(serpObj.organic_results)) {
     const max = Math.min(serpObj.organic_results.length, descriptions.length);
@@ -83,6 +89,8 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
 
       it.articleTitle = d.articleTitle ?? null;
       it.articleText = d.articleText ?? null;
+      it.articleSnippet = d.snippet ?? null;
+      it.articleUrl = d.url ?? null;
       it.articleError = d.error ?? false;
     }
   }
@@ -181,21 +189,34 @@ export async function extractDescriptionsFromSerp(serpObj) {
       return {
         title: item.title,
         url: item.link,
-        snippet: item.snippet,
-        articleTitle: article.title,
-        articleText: article.textContent,
+        articleTitle: article.title ?? item.title ?? "",
+        articleText: article.textContent ?? "",
+        snippet: article.excerpt ?? "",
+        error: false
       };
     } catch (err) {
       console.error("Error in", item.link, err);
       return {
         title: item.title,
         url: item.link,
-        snippet: item.snippet,
-        articleTitle: null,
-        articleText: null,
-        error: true,
+        articleTitle: item.title ?? "",
+        articleText: "",
+        snippet: "",
+        error: true
       };
     }
   });
-  return await Promise.all(promises);
+
+  const results = await Promise.all(promises);
+
+  // normalize to client structure (Map<String,String>)
+  return results.map((r) => {
+    return {
+      articleTitle: r.articleTitle ?? "",
+      articleText: r.articleText ?? "",
+      snippet: r.snippet ?? "",
+      url: r.url ?? "",
+      error: r.error ?? false,
+    };
+  });
 }

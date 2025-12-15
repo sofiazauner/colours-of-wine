@@ -1,30 +1,33 @@
 /* logic for previous search database */
 
-part of 'orchestrator.dart';
+part of orchestrator;
 
 extension WineScannerHistoryLogic on _WineScannerPageState {
 
   // find previous searches
   Future<List<StoredWine>> _fetchSearchHistory() async {
     if (_isLoading) return [];
+
+    if (!mounted) return [];
     setState(() => _isLoading = true);
 
     try {
-      final scope =
-      _collectionScope == WineCollectionScope.mine ? 'mine' : 'others';
-      final list = await _wineRepository.getSearchHistory(scope: scope);
+      final list = await _wineRepository.getSearchHistory();
       return list;
     } catch (e) {
       debugPrint("Error retrieving wine descriptions: $e");
       SnackbarMessages.showErrorBar(context, SnackbarMessages.descriptionFailed);
       return [];
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _showSearchHistory() async {
     final history = await _fetchSearchHistory();
+    if (!mounted) return;
     setState(() {
       _pastWineData = history;
     });
@@ -36,8 +39,9 @@ extension WineScannerHistoryLogic on _WineScannerPageState {
     try {
       await _wineRepository.deleteSearch(id);
 
+      if (!mounted) return;
       setState(() {
-        _pastWineData!.removeWhere((w) => w.id == id); // remove from local list
+        _pastWineData!.removeWhere((w) => w.id == id);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

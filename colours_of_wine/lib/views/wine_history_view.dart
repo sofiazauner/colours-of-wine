@@ -1,16 +1,13 @@
 /* user interface for the history screen */
 
-part of '../features/orchestrator.dart';
+part of orchestrator;
 
-extension WineScannerViews on _WineScannerPageState {
-
-  // wine card for previous searches
+extension WineScannerHistoryView on _WineScannerPageState {
   Widget _buildStoredWineCard(StoredWine item) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Stack(
         children: [
-          if (_collectionScope == WineCollectionScope.mine)
           Positioned(
             right: 6,
             top: 6,
@@ -39,9 +36,7 @@ extension WineScannerViews on _WineScannerPageState {
                 const SizedBox(height: 8),
                 if (item.createdAt != null) ...[
                   Text(
-                    DateFormat.yMMMMd().add_jm().format(
-                          item.createdAt!.toLocal(),
-                        ),
+                    DateFormat.yMMMMd().add_jm().format(item.createdAt!.toLocal()),
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppConstants.dateColor,
@@ -84,8 +79,12 @@ extension WineScannerViews on _WineScannerPageState {
 
   // previous searches view
   Widget _buildHistoryView() {
-    // filter for searching option
-    final List<StoredWine> visibleItems = _pastWineData!.where((w) => _searchQuery.isEmpty || w.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final List<StoredWine> items = _pastWineData ?? [];
+
+    final String q = _searchQuery.trim().toLowerCase();
+    final List<StoredWine> visibleItems = q.isEmpty
+        ? items
+        : items.where((w) => w.name.toLowerCase().contains(q)).toList();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5),
       child: Column(
@@ -93,9 +92,7 @@ extension WineScannerViews on _WineScannerPageState {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
             child: Text(
-              _collectionScope == WineCollectionScope.mine
-                  ? AppConstants.historyTitle
-                  : 'Andere Weine',
+              AppConstants.historyTitle,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.normal,
                     color: AppConstants.redEmoji,
@@ -103,6 +100,8 @@ extension WineScannerViews on _WineScannerPageState {
             ),
           ),
           const SizedBox(height: 20),
+
+          // search bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -127,6 +126,7 @@ extension WineScannerViews on _WineScannerPageState {
                       fillColor: AppConstants.fillColor,
                     ),
                     onSubmitted: (value) {
+                      if (!mounted) return;
                       setState(() {
                         _searchQuery = value.trim();
                       });
@@ -138,6 +138,7 @@ extension WineScannerViews on _WineScannerPageState {
                   icon: const Icon(Icons.search),
                   tooltip: AppConstants.searchInHistoryButton,
                   onPressed: () {
+                    if (!mounted) return;
                     setState(() {
                       _searchQuery = _searchController.text.trim();
                     });
@@ -147,6 +148,8 @@ extension WineScannerViews on _WineScannerPageState {
             ),
           ),
           const SizedBox(height: 16),
+
+          // list
           Expanded(
             child: visibleItems.isEmpty
                 ? const Padding(
@@ -188,6 +191,7 @@ extension WineScannerViews on _WineScannerPageState {
                       ),
                     ),
                     onPressed: () {
+                      if (!mounted) return;
                       setState(() {
                         _searchQuery = '';
                         _searchController.clear();
@@ -205,6 +209,7 @@ extension WineScannerViews on _WineScannerPageState {
                       ),
                     ),
                     onPressed: () {
+                      if (!mounted) return;
                       setState(() {
                         _pastWineData = null;
                         _searchQuery = '';

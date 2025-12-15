@@ -2,122 +2,108 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:http/src/response.dart';
-import 'package:colours_of_wine/models/models.dart';
-import 'package:colours_of_wine/models/exceptions.dart';
+
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
+import 'package:colours_of_wine/models/exceptions.dart';
+import 'package:colours_of_wine/models/models.dart';
+import 'package:colours_of_wine/models/validation.dart';
 
 class WineRepository {
-  final String baseURL;
-  final Future<String> Function() getToken;
-
   WineRepository({
     required this.baseURL,
     required this.getToken,
   });
 
-  Future<Response> get(String endpoint, {String? query, String? name, String? scope,}) async {
+  final String baseURL;
+  final Future<String> Function() getToken;
+
+  Future<http.Response> get(String endpoint, {String? query}) async {
     final token = await getToken();
-    final params = <String, String?>{
-        'token': token,
-        'q': query,
-        'name': name,
-        'scope': scope,
-      };
-
-    // Remove nulls to avoid sending literal "null" strings.
-    params.removeWhere((_, v) => v == null);
-
-    final url = Uri.parse("$baseURL/$endpoint").replace(
-      queryParameters: params,
-    );
-    return await http.get(url).timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        throw NetworkException('Request timed out');
-      },
-    );
-  }
-
-  Future<Response> post(String endpoint, String id) async {
-    final token = await getToken();
-    final url = Uri.parse("$baseURL/$endpoint").replace(
-      queryParameters: {
-        'token': token,
-        'id': id,
-      },
-    );
-
-    return await http.post(url).timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        throw NetworkException('Request timed out');
-      },
-    );
-  }
-
-  Future<Response> postJson(String endpoint, {Map<String, dynamic>? body}) async {
-  final token = await getToken();
-  final url = Uri.parse("$baseURL/$endpoint").replace(
-    queryParameters: {
-      'token': token,
-    },
-  );
-
-  return await http.post(url, headers: const {
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(body ?? {}),
-    ).timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        throw NetworkException('Request timed out');
-      },
-    );
-  }
-
-  Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {
-    for (int i = 0; i < maxRetries; i++) {
-      try {
-        return await fn();
-      } catch (e) {
-        if (i == maxRetries - 1) rethrow;
-        await Future.delayed(Duration(seconds: i));
-      }
+    final url = query == null
+        ? Uri.parse("$baseURL/$endpoint?token=$token")
+        : Uri.parse("$baseURL/$endpoint?token=$token&q=$query");
+    try {
+      return await http.get(url);
+    } catch (_) {
+      throw NetworkException('Network error while contacting the server. Please check your internet connection.');
     }
-    throw NetworkException("Max retries exceeded");
   }
 
-  /// Fetches the wine descriptions from Serp API.
+  Future<http.Response> post(String endpoint, String id) async {
+    final token = await getToken();
+    final url = Uri.parse("$baseURL/$endpoint?token=$token&id=$id");
+    try {
+    return await http.post(url);
+    } catch (_) {
+      throw NetworkException('Failed to send data to the server. Please try again later.');
+    }
+  }
+
+  Future<http.Response> postJson(String endpoint,
+      {required Map<String, dynamic> body}) async {
+  final token = await getToken();
+  final url = Uri.parse("$baseURL/$endpoint?token=$token");
+    try {
+  return await http.post(url, headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+    } catch (_) {
+      throw NetworkException('Unable to communicate with the server while sending data.');
+    }
+  }
+
+  /// Fetches wine descriptions from the web (SerpApi).
   ///
-  /// Takes a WineData received from the user.
-  /// 
-  /// Throws [ApiException] if the API call fails.
-  /// Throws [NetworkException] if network connectivity issues occur.
-  Future<List<Map<String, String>>> fetchDescriptions(WineData wineData) async {
-    final query = wineData.toUriComponent();
-    final wineName = wineData.name;
-    final response = await get("fetchDescriptions", query: query, name: wineName);
+  /// Returns (historyId, descriptions).
+  Future<(String, List<Map<String, String>>)> fetchDescriptions(
+      WineData wineData) async {
+    final validationResult = WineDataValidator.validate(wineData);
+    if (!validationResult.ok) {
+      throw ArgumentError("WineData is invalid: ${validationResult.message}");
+    }
+
+    final q = wineData.toUriComponent();
+    final name = Uri.encodeComponent(wineData.name);
+
+    final response = await get("fetchDescriptions", query: "$q&name=$name");
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Search failed");
     }
     final data = jsonDecode(response.body);
-    final results = <Map<String, String>>[];
-    if (data['organic_results'] != null) {
-      for (var item in data['organic_results']) {
-        results.add({
-          "title": item['title'] ?? "No title",
-          "snippet": item['snippet'] ?? "",
-          "url": item['link'] ?? "",
-          "articleText": item['articleText'] ?? "",
-        });
+    final historyId =
+    (data is Map && data['historyId'] != null) ? data['historyId'].toString() : "";
+
+    final List<Map<String, String>> results = [];
+
+    final organic = (data is Map) ? data["organic_results"] : null;
+    if (organic is List) {
+      for (final item in organic) {
+        if (item is Map) {
+          final title = item["articleTitle"]?.toString() ??
+              item["title"]?.toString() ??
+              "";
+          final text = item["articleText"]?.toString() ?? "";
+          final snippet = item["articleSnippet"]?.toString() ??
+              item["snippet"]?.toString() ??
+              "";
+          final url = item["articleUrl"]?.toString() ??
+              item["link"]?.toString() ??
+              "";
+
+          results.add({
+            "articleTitle": title,
+            "articleText": text,
+            "snippet": snippet,
+            "url": url,
+          });
+        }
       }
     }
-    return results;
-  }
 
+    return (historyId, results);
+  }
 
   /// Extracts a description from the uploaded file.
   /// 
@@ -163,12 +149,12 @@ class WineRepository {
 
 
   /// Generates a wine summary using Gemini AI Agentic Reviewer Loop and selected descriptions.
-  /// 
+  ///
   /// Requires [selectedDescriptions] to be non-empty. The backend does not
   /// perform its own web search anymore.
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
-  Future<Map<String, dynamic>> generateSummary(WineData wineData, {required List<Map<String, String>> selectedDescriptions}) async {
+  Future<Map<String, dynamic>> generateSummary(WineData wineData, {required List<Map<String, String>> selectedDescriptions, required String historyId,}) async {
     if (selectedDescriptions.isEmpty) {
       throw ArgumentError("At least one description must be selected to generate a summary.",);
     }
@@ -180,6 +166,7 @@ class WineRepository {
       body: {
         "q": query,
         "descriptions": selectedDescriptions,
+        "historyId": historyId,
       },
     );
 
@@ -233,19 +220,17 @@ class WineRepository {
   /// 
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
-  Future<List<StoredWine>> getSearchHistory({String scope = 'mine'}) async {
-    final response = await get("searchHistory", scope: scope);
+  Future<List<StoredWine>> getSearchHistory() async {
+    final response = await get("searchHistory");
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Search failed");
     }
 
     final List<dynamic> data = jsonDecode(response.body);
-    final List<StoredWine> list = data.map((item) {
+    return data.map((item) {
       final map = Map<String, dynamic>.from(item);
       return StoredWine.fromJson(map);
     }).toList();
-
-    return list;
   }
 
 
