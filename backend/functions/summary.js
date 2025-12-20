@@ -59,7 +59,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     return res.status(500).send("Failed to generate summary");
   }
   // generate image based on colors embedded into summary
-  const image = await generateImage(result.colors);
+  const image = await generateImage(result.colors, result.residualSugar / 100);
   result.image = image.toString("base64");
   delete result.colors;
 
@@ -125,6 +125,7 @@ const CSSColors = [
 
 const WriterModelZod = z.object({
   summary: z.string(),
+  residualSugar: z.object().number().min(0).max(100),
   colors: (function() {
     const obj = {};
     const colors = z.enum(CSSColors)
@@ -159,6 +160,8 @@ WICHTIG:
 - Die Farbassoziationen sollen gültige CSS-Farben sein.
 - Deine Ausgabe MUSS ausschließlich im folgenden JSON-Format sein:
 
+Zusätzlich musst du den wahrgenommenen Restzucker des Weines bewerten. Stufe den Restzuckerwert auf einer Skala von 0 bis 100 ein.
+Je mehr Restzucker, desto höher der Wert (0 = trocken, 100 = sehr süß)!!
 {
   "summary": "DEINE ZUSAMMENFASSUNG HIER",
   "colors": {
@@ -170,7 +173,8 @@ WICHTIG:
     "Körper": "FARBE FÜR KÖRPER/BALANCE",
     "Tannin": "FARBE FÜR TANNIN",
     "Reifearomen": "FARBE FÜR REIFEAROMEN"
-  }
+  },
+  "residualSugar": Nummerischer Wert zwischen 0 und 100,
 }`;
   const ai = await getAi()
   const response = await ai.models.generateContent({
@@ -211,6 +215,9 @@ Deine Aufgabe:
 - Prüfe, ob Stil und Klarheit für eine Weinbeschreibung geeignet sind.
 - Prüfe, ob die Farben zu den bestimmten Aspekten des Weines gut passen.
 - Gib konstruktives Feedback zur Verbesserung der Zusammenfassung und der Farben, falls nötig.
+- Prüfe, ob der angegebene Restzuckerwert (0 bis 100) zur Beschreibung passt.
+- Lehne ab, wenn der Wert im Widerspruch zu Begriffen wie trocken, halbtrocken, süß etc. steht.
+
 
 WICHTIG:
 - Wenn die Zusammenfassung in Ordnung ist, stimme zu.
