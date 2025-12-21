@@ -71,8 +71,8 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
  * Operate the agentic writer/reviewer loop. Each iteration asks the reviewer to review the writer's output.
  * If MaxIterationCount is exceeded, the loop is stopped.
  */
-const MaxIterationCount = 5;
-async function buildValidatedSummaryFromDescriptions(descriptions) {
+const MaxIterationCount = 3;
+export async function buildValidatedSummaryFromDescriptions(descriptions) {
   if (!Array.isArray(descriptions) || descriptions.length === 0) {
     throw new TypeError("No descriptions available to summarize");
   }
@@ -93,7 +93,7 @@ async function buildValidatedSummaryFromDescriptions(descriptions) {
   const end = new Date();
   logger.info(`Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`);
 
-  return {summary: review.approved ? obj.summary : "", colors: obj.colors, approved: review.approved};
+  return {summary: review.approved ? obj.summary : "", colors: obj.colors, residualSugar: obj.residualSugar, approved: review.approved};
 }
 
 
@@ -125,7 +125,7 @@ const CSSColors = [
 
 const WriterModelZod = z.object({
   summary: z.string(),
-  residualSugar: z.object().number().min(0).max(100),
+  residualSugar: z.number().min(0).max(100),
   colors: (function() {
     const obj = {};
     const colors = z.enum(CSSColors)
