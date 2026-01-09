@@ -2,95 +2,78 @@
 
 import 'package:flutter/material.dart';
 
-
 class AppConstants {
-  // basic app layout
-  static const String appTitle = "Discover your wine";
-  static const String signInText = "Sign in to start";
-  static const Color bgColour = Color.fromRGBO(237, 237, 213, 1);
-  static const Color schemeColour = Color.fromARGB(225, 237, 237, 213);
-  static const Color urlColour = Colors.blue;
-  static const Color userEmailColour = Color.fromRGBO(255, 255, 255, 0);
+  // authentication
+  static const String signInButton = "Continue with Google";
+  static const Color signInButtonColor = Color.fromRGBO(134, 24, 33, 0.875);
+  static const Color signInButtonTextColor = Colors.white;
+  static const Color bgColorLogin = Color.fromRGBO(237, 235, 228, 1.0);
 
-
-  // ui strings
-  static const String confirmPhotosTitle = "Confirm Photos";
-  static const String uploadTitel = "Upload Photos of Label";
-  static const String succFrontLabel = "✅ Front Label";
-  static const String succBackLabel = "✅ Back Label";
-  static const String conftimFrontTitle = "Front Label";
-  static const String conftimBackTitle = "Back Label";
-  static const String manualTitle = "Enter wine details";
-
-
-  // ui buttons
-  static const String closeButton = "Close";
-  static const String saveButton = "Save";
-  static const String confirmButton = "Confirm";
-  static const String cancelButton = "Cancel";
-
-  static const String signInButton = "Sign in with Google";
-  static const String signOutButton = "Sign out";
-
-  static const String startScanButton = "Scan label";
-  static const String uploadFrontLabelButton = "Upload Front Label";
-  static const String uploadBackLabelButton = "Upload Back Label";
-  static const String retakePicButton = "Retake Photos";
-  static const String analysisButton = "Analyze Label";
-  static const String startManualButton = "Fill data in manually";
-
-  static const String getDescrButton = "Get Wine Descriptions";
-  static const String tryAgainButton = "Try Again";
-
-  static const String generateSumAndImageButton = "Generate Summary + Image";
-
-  static const String startHistoryButton = "Previous searches";
-  static const String searchInHistoryButton = "Search";
-  static const String resetSearch = "Reset Search";
-
-  static const String settingsButton = "Settings";
-
-  // settings view
-  static const String settingsTitle = "Settings";
-  static const String defaultDescriptionSelectionText = "Default number of descriptions selected:";
-
-
-  // description view
-  static const String descriptionTitle = "Wine Descriptions   ||";
-  static const String noDescriptionsText = "No descriptions found.";
-  static const String selectDescriptionsText = "Select up to 7 descriptions to be used for the summary.";
-  static const String addDescriptionText = "Add Description";
-  static const String chooseFileText = "Choose file";
-  static const String loadFromUrlText = "Load from URL";
+  // descriptions
   static const int defaultSelectedDescriptionsCount = 3;
-  static const int maximumDescriptionsForSummary = 7;
+  static const int maximumDescriptionsForSummary = 20;
 
+  // document icon
+  static const Color docIconFallbackColor = Colors.black87;
+  static const Color docIconFillColor = Colors.white;
+  static const double docIconStrokeWidth = 1.5;
+  static const double docIconSize = 24.0;
 
-  // history view
-  static const Color redEmoji = Color.fromARGB(255, 113, 9, 9);
-  static const Color deleteButtonColor = Color.fromARGB(255, 111, 101, 25);
-  static const Color dateColor = Color.fromARGB(255, 71, 69, 69);
-  static const Color fillColor = Color.fromARGB(255, 249, 246, 233);
-  static const Color borderColor = Color.fromARGB(255, 236, 111, 111);
-  static const String descripTitle = "Descriptions: ";
-  static const String emptyDescr = "No descriptions saved.";
-  static const String historyTitle = "Previous Searches:";
-  static const String searchHintText = "Search for a wine name";
-  static const String emptySearch = "No entries found.";
+  // residual sugar chart
+  static const double restzuckerChartWidth = 200.0;
+  static const double restzuckerChartMaxHeight = 200.0;
+  static const Color restzuckerBarColor = Color(0xFFFF1493);
+  static const Color restzuckerBgColor = Color(0xFFFFE6F0);
 
+  // circle 
+  static const Color defaultCircleColor = Color(0xFF8B2635);
+  static const Color circleShadowColor = Colors.black;
+  static const Color circleBorderColor = Colors.grey;
+  static const double wineCircleSize = 100.0;
+  static const double wineCircleBorderWidth = 3.0;
 
-  // result view
-  static const Color resultTextCol = Color.fromARGB(255, 0, 0, 0);
-  static const Color resultTitleCol = Color.fromRGBO(66, 66, 66, 1);
-  static const String wineCradTitle = "Registered Information:";
-  static const String summarySucc = "AI Summary:";
-  static const String summaryFail = "There was an issue with the summary - Please try again!";
-
-
-  // snackbar + showing informations
+  // snackbar
   static const Duration defaultSnackBarDuration = Duration(seconds: 5);
-  static const Color errorRed = Color.fromARGB(255, 210, 8, 8);
   static const Color informationOrange = Color.fromARGB(255, 184, 114, 17);
-  static const Color successGreen = Colors.green;
   static const Color infoTextColour = Color.fromARGB(255, 255, 255, 251);
+
+  // HTTP timeouts
+  static const Duration httpTimeout = Duration(seconds: 30);
+  static const int maxRetries = 3;
+  static const Duration retryDelay = Duration(seconds: 2);
+
+  // UI spacing
+  static const double dialogBorderRadius = 16.0;
+  static const double cardBorderRadius = 12.0;
+  static const double dialogPadding = 24.0;
+  static const double smallSpacing = 8.0;
+  static const double mediumSpacing = 12.0;
+  static const double largeSpacing = 24.0;
+
+  // image/photo
+  static const double photoFieldHeight = 350.0;
+  static const double photoFieldWidth = 200.0;
+  static const int imageQuality = 85;
+  static const double maxImageWidth = 1024.0;
+  static const double maxImageHeight = 1024.0;
+
+  // colors
+  static const Color emptyFieldHighlight = Color.fromARGB(255, 249, 120, 252);
+
+  // theme colors
+  static const Color themeSeedColor = Color(0xFF616161);
+  static final Color themeScaffoldBg = Colors.grey.shade50;
+  static final Color themeCardColor = Colors.grey.shade100;
+  static final Color themeAppBarBg = Colors.grey.shade100;
+  static final Color themeAppBarFg = Colors.grey.shade900;
+  static const int themeCardElevation = 2;
+  static const int themeAppBarElevation = 0;  
+
+  // sharedpreferences Keys
+  static const String defaultDescriptionCountKey = 'default_description_count';
+  static const String appLanguageKey = 'app_language';
+
+  // wine year validation
+  static const int minWineYear = 1900;
+  static const int maxWineYear = 2100;
 }

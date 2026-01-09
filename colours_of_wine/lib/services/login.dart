@@ -2,12 +2,12 @@
 
 import 'package:colours_of_wine/utils/app_constants.dart';
 import 'package:colours_of_wine/utils/snackbar_messages.dart';
+import 'package:colours_of_wine/screens/home_screen.dart';
+import 'package:colours_of_wine/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';                           // for kIsWeb
 import 'package:firebase_auth/firebase_auth.dart';                  // for authentification (Google Sign-In)
-import 'package:google_sign_in/google_sign_in.dart';                          
-import 'package:colours_of_wine/features/orchestrator.dart';
-
+import 'package:google_sign_in/google_sign_in.dart';
 
 // init screen - decide if we need login or not
 class InitPage extends StatefulWidget {
@@ -47,7 +47,7 @@ class _InitPageState extends State<InitPage> {
         }
 
         final user = snapshot.data!;               // signed in
-        return WineScannerPage(user);
+        return const HomeScreen();                 // show new frontend after login
       },
     );
   }
@@ -66,6 +66,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppConstants.bgColorLogin,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -77,26 +78,49 @@ class _LoginPageState extends State<LoginPage> {
 
   // UI (Google Sign-In)
   Widget _buildLoginView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Image.asset('assets/logo.png', height: 230, fit: BoxFit.contain,),   // logo
-        const SizedBox(height: 20),
-        Text(AppConstants.signInText, style: Theme.of(context).textTheme.titleLarge,),
-        const SizedBox(height: 30),
-        ElevatedButton.icon( 
-          icon: const Icon(Icons.login),
-          label: const Text(AppConstants.signInButton),
-          onPressed: _signInWithGoogle,
+   return Column(
+     mainAxisAlignment: MainAxisAlignment.center,
+     children: [
+      const Text(
+        'Colors of Wine',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
         ),
-      ],
-    );
-  }
+      ),
+      const Text(
+        'A new way to experience Wine',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 17,
+          color: Colors.grey,
+        ),
+      ),
+      const SizedBox(height: 12),
+       Image.asset('assets/logo.png',
+         height: 300,
+         fit: BoxFit.contain,
+       ),
+       const SizedBox(height: 15),
+       ElevatedButton.icon(
+         icon: const Icon(Icons.login),
+         label: const Text(AppConstants.signInButton),
+         onPressed: _signInWithGoogle,
+         style: ElevatedButton.styleFrom(
+           backgroundColor: AppConstants.signInButtonColor,
+           foregroundColor: AppConstants.signInButtonTextColor,
+         ),
+       ),
+     ],
+   );
+}
 
   Future<Widget> _signInWithGoogle() async {
     final user = await _signInWithGoogleImpl();
     if (user == null) {
-      SnackbarMessages.showErrorBar(context, SnackbarMessages.signin);
+      SnackbarMessages.show(context, AppLocalizations.of(context)!.signinFailed);
     }
     return InitPage();
   }

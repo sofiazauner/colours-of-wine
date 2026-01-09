@@ -1,3 +1,5 @@
+/* exception classes for networks/api-exceptions.*/
+
 class ApiException implements Exception {
   final int statusCode;
   final String message;

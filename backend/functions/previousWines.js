@@ -1,7 +1,6 @@
 /* handle previous wine storage */
 
-import logger from "firebase-functions/logger";
-import { admin, searchCollection, onWineRequest } from "./config.js";
+import { searchCollection, onWineRequest } from "./config.js";
 
 /** Retrieve the search history for a user. */
 export const searchHistory = onWineRequest(async (req, res, user) => {
@@ -13,6 +12,20 @@ export const searchHistory = onWineRequest(async (req, res, user) => {
     docs.push({
       id: doc.id,
       name: data.name ?? "",
+      year: data.year ?? "",
+      producer: data.producer ?? "",
+      region: data.region ?? "",
+      country: data.country ?? "",
+      nose: data.nose ?? "",
+      palate: data.palate ?? "",
+      finish: data.finish ?? "",
+      alcohol: data.alcohol ?? 0.0,
+      restzucker: data.restzucker ?? null,
+      saure: data.saure ?? null,
+      vinification: data.vinification ?? "",
+      foodPairing: data.foodPairing ?? "",
+      imageUrl: data.imageUrl ?? null,
+      fromImported: data.fromImported ?? null,
       descriptions: Array.isArray(data.descriptions) ? data.descriptions : [],
       createdAt: data.createdAt ? data.createdAt.toMillis() : null,
     });

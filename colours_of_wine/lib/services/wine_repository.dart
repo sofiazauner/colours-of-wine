@@ -3,8 +3,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/src/response.dart';
-import 'package:colours_of_wine/models/models.dart';
+import 'package:colours_of_wine/models/wine.dart';
 import 'package:colours_of_wine/models/exceptions.dart';
+import 'package:colours_of_wine/utils/app_constants.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
@@ -28,7 +29,7 @@ class WineRepository {
       },
     );
     return await http.get(url).timeout(
-      const Duration(seconds: 30),
+      AppConstants.httpTimeout,
       onTimeout: () {
         throw NetworkException('Request timed out');
       },
@@ -45,7 +46,7 @@ class WineRepository {
     );
 
     return await http.post(url).timeout(
-      const Duration(seconds: 30),
+      AppConstants.httpTimeout,
       onTimeout: () {
         throw NetworkException('Request timed out');
       },
@@ -65,20 +66,20 @@ class WineRepository {
       },
       body: jsonEncode(body ?? {}),
     ).timeout(
-      const Duration(seconds: 30),
+      AppConstants.httpTimeout,
       onTimeout: () {
         throw NetworkException('Request timed out');
       },
     );
   }
 
-  Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = 3}) async {
+  Future<T> retry<T>(Future<T> Function() fn, {int maxRetries = AppConstants.maxRetries}) async {
     for (int i = 0; i < maxRetries; i++) {
       try {
         return await fn();
       } catch (e) {
         if (i == maxRetries - 1) rethrow;
-        await Future.delayed(Duration(seconds: i));
+        await Future.delayed(AppConstants.retryDelay);
       }
     }
     throw NetworkException("Max retries exceeded");
@@ -86,13 +87,13 @@ class WineRepository {
 
   /// Fetches the wine descriptions from Serp API.
   ///
-  /// Takes a WineData received from the user.
+  /// Takes a Wine object.
   /// 
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
-  Future<List<Map<String, String>>> fetchDescriptions(WineData wineData) async {
-    final query = wineData.toUriComponent();
-    final wineName = wineData.name;
+  Future<List<Map<String, String>>> fetchDescriptions(Wine wine) async {
+    final query = wine.toUriComponent();
+    final wineName = wine.name;
     final response = await get("fetchDescriptions", query: query, name: wineName);
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Search failed");
@@ -160,21 +161,33 @@ class WineRepository {
   /// 
   /// Requires [selectedDescriptions] to be non-empty. The backend does not
   /// perform its own web search anymore.
+  /// Sends complete wine data to backend for storage.
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
-  Future<Map<String, dynamic>> generateSummary(WineData wineData, {required List<Map<String, String>> selectedDescriptions}) async {
+  Future<Map<String, dynamic>> generateSummary(
+    Wine wine, {
+    required List<Map<String, String>> selectedDescriptions,
+    Map<String, dynamic>? wineInfo, // Complete wine info for storage
+  }) async {
     if (selectedDescriptions.isEmpty) {
       throw ArgumentError("At least one description must be selected to generate a summary.",);
     }
 
-    final query = wineData.toUriComponent();
+    final query = wine.toUriComponent();
+    
+    final body = {
+      "q": query,
+      "descriptions": selectedDescriptions,
+    };
+    
+    // Add complete wine info if provided (for storage in backend)
+    if (wineInfo != null) {
+      body["wineInfo"] = wineInfo;
+    }
     
     final response = await postJson(
       "generateSummary",
-      body: {
-        "q": query,
-        "descriptions": selectedDescriptions,
-      },
+      body: body,
     );
 
     if (response.statusCode != 200) {
@@ -189,10 +202,11 @@ class WineRepository {
   /// 
   /// Takes front and back label images and extracts wine information
   /// including name, winery, vintage, grape variety, etc.
+  /// Returns a Map with the extracted data.
   /// 
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
-  Future<WineData> analyzeLabel(Uint8List frontBytes, Uint8List backBytes) async {
+  Future<Map<String, String>> analyzeLabel(Uint8List frontBytes, Uint8List backBytes) async {
     final token = await getToken();
     final request = http.MultipartRequest(
       'POST',
@@ -219,24 +233,27 @@ class WineRepository {
     final text = await response.stream.bytesToString();
     final decoded = jsonDecode(text);
 
-    return WineData(Map<String, String>.from(decoded));
+    return Map<String, String>.from(decoded);
   }
 
 
   /// Fetches the search history of the user.
+  /// Returns list of Wine objects directly from backend.
   /// 
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
-  Future<List<StoredWine>> getSearchHistory() async {
+  Future<List<Wine>> getSearchHistory() async {
     final response = await get("searchHistory");
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, "Search failed");
     }
 
     final List<dynamic> data = jsonDecode(response.body);
-    final List<StoredWine> list = data.map((item) {
+    final List<Wine> list = data.map((item) {
       final map = Map<String, dynamic>.from(item);
-      return StoredWine.fromJson(map);
+      // Add category for "meine Weine"
+      map['category'] = 'meineWeine';
+      return Wine.fromJson(map);
     }).toList();
 
     return list;

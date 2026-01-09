@@ -1,7 +1,7 @@
 /* summarize descriptions from web */
 
 import logger from "firebase-functions/logger";
-import { getAi, GeminiModel, admin, WineComponents, onWineRequest } from "./config.js";
+import { getAi, GeminiModel, admin, WineComponents, onWineRequest, searchCollection } from "./config.js";
 import { generateImage } from "./image.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -19,6 +19,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
 
   const q = req.body?.q;
   const descriptionsFromClient = req.body?.descriptions;
+  const wineInfo = req.body?.wineInfo;                    // complete wine data from frontend
 
   if (!q) {
     logger.info("Missing q in generateSummary", { q });
@@ -58,12 +59,82 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     logger.error("Failed to generate validated summary", { error: e });
     return res.status(500).send("Failed to generate summary");
   }
-  // generate image based on colors embedded into summary
-  const image = await generateImage(result.colors, result.residualSugar / 100);
-  result.image = image.toString("base64");
+  // generate image based on colors embedded into summary (!! for testing: even if summary gets not approved !!)
+  let imageBase64 = null;
+  const colors = result.colors;
+  if (colors) {
+    const image = await generateImage(colors, result.residualSugar / 100);
+    imageBase64 = image.toString("base64");
+    result.image = imageBase64;
+  }
   delete result.colors;
 
-  return res.status(200).send(JSON.stringify(result));
+  // parse summary to extract structured sections (nose etc.)
+  const summary = result.summary || "";
+  let noseText = "";
+  let palateText = "";
+  let finishText = "";
+  let vinificationText = "";
+  let foodPairingText = "";
+
+  if (summary.includes("Nose:") || summary.includes("Nase:")) {
+    const parts = summary.split(/(?=Palate:|Mundgefühl:|Finish:|Abgang:|Vinification:|Vinifikation:|Food Pairing:|Speiseempfehlung:)/);
+    if (parts.length >= 1) {
+      noseText = parts[0].replace(/^(Nose:|Nase:)\s*/, "").trim();
+    }
+    if (parts.length >= 2) {
+      palateText = parts[1].replace(/^(Palate:|Mundgefühl:)\s*/, "").trim();
+    }
+    if (parts.length >= 3) {
+      finishText = parts[2].replace(/^(Finish:|Abgang:)\s*/, "").trim();
+    }
+    if (parts.length >= 4) {
+      vinificationText = parts[3].replace(/^(Vinification:|Vinifikation:)\s*/, "").trim();
+    }
+    if (parts.length >= 5) {
+      foodPairingText = parts[4].replace(/^(Food Pairing:|Speiseempfehlung:)\s*/, "").trim();
+    }
+  }
+
+  // save complete wine data to database
+  if (wineInfo) {
+    const uid = user.uid;
+    const wineName = wineInfo.name || "No Name";
+    const descriptions = Array.isArray(wineInfo.descriptions) ? wineInfo.descriptions : [];
+
+    await searchCollection.add({
+      uid: uid,
+      name: wineName,
+      year: wineInfo.year || "",
+      producer: wineInfo.producer || "",
+      region: wineInfo.region || "",
+      country: wineInfo.country || "",
+      nose: noseText,
+      palate: palateText,
+      finish: finishText,
+      alcohol: wineInfo.alcohol || 0.0, 
+      restzucker: result.residualSugar || null,
+      saure: wineInfo.saure || null,
+      fromImported: wineInfo.fromImported || null,
+      vinification: vinificationText,
+      foodPairing: foodPairingText,
+      imageUrl: imageBase64 ? `data:image/png;base64,${imageBase64}` : null,
+      descriptions: descriptions,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+
+  // return parsed sections along with summary for frontend convenience
+  const response = {
+    ...result,
+    nose: noseText,
+    palate: palateText,
+    finish: finishText,
+    vinification: vinificationText,
+    foodPairing: foodPairingText,
+  };
+  
+  return res.status(200).send(JSON.stringify(response));
 });
 
 
@@ -93,7 +164,8 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
   const end = new Date();
   logger.info(`Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`);
 
-  return {summary: review.approved ? obj.summary : "", colors: obj.colors, residualSugar: obj.residualSugar, approved: review.approved};
+  // !! for testing: return summary and colors even if not approved (so image can be generated) !!
+  return {summary: review.approved ? obj.summary : obj.summary, colors: obj.colors, residualSugar: obj.residualSugar, approved: review.approved};
 }
 
 
@@ -152,6 +224,7 @@ Nachdem du die Zusammenfassung erstellt hast, musst du außerdem eine Liste von 
 Wähle Formulierung und Länge so, wie du es für am besten hältst.
 
 WICHTIG:
+- Die Zusammenfassung MUSS die Sektionen: "Nose:" (Beschreibung der Aromatik und Geruchseindrücke), "Palate:" (Beschreibung des Geschmacks, der Textur und des Mundgefühls), "Finish:" (Beschreibung des Abgangs und Nachgeschmacks), "Vinification:" (Beschreibung der Vinifikation und des Ausbaus) und "Food Pairing:" (Speiseempfehlungen) enthalten. Wenn du zu einer dieser Sektion keine Informationen in den Quellen findest, schreibe trotzdem die Sektion mit "N/A" als Inhalt.
 - Fasse die wichtigsten Infos zusammen (Stil, Aroma, Herkunft, Charakter, Mineralik/Süße, Komplexität, Holzeinsatz/Ausbaustil, Intensität, Säure, Fruchtcharacter, Nicht-Frucht Komponenten).
 - Nutze die bereitgestellten Quellen als einzige Informationsquelle.
 - Erfinde keine Fakten, die in den Quellen nicht zumindest implizit angelegt sind.
@@ -163,7 +236,7 @@ WICHTIG:
 Zusätzlich musst du den wahrgenommenen Restzucker des Weines bewerten. Stufe den Restzuckerwert auf einer Skala von 0 bis 100 ein.
 Je mehr Restzucker, desto höher der Wert (0 = trocken, 100 = sehr süß)!!
 {
-  "summary": "DEINE ZUSAMMENFASSUNG HIER",
+  "summary": "Deine Zusammenfassung hier. Sie enthält unteranderem: Nose: [Aromatik und Geruchseindrücke]\nPalate: [Geschmack, Textur und Mundgefühl]\nFinish: [Abgang und Nachgeschmack]\nVinification: [Vinifikation und Ausbau]\nFood Pairing: [Speiseempfehlungen]",
   "colors": {
     "Holzeinsatz": "FARBE FÜR HOLZEINSATZ/AUSBAUSTIL",
     "Mousseux": "FARBE FÜR MOUSSEUX",
@@ -207,6 +280,7 @@ Hier sind die Quellen der Ursprungsbeschreibungen (Beschreibungen aus dem Web):$
 Hier ist die Zusammenfassung mit Farbassoziatonen, die überprüft werden soll:"${JSON.stringify(obj)}"
 
 Deine Aufgabe:
+- Prüfe, ob die Zusammenfassung die Sektionen "Nose:" (Aromatik), "Palate:" (Geschmack/Mundgefühl), "Finish:" (Abgang), "Vinification:" (Vinifikation/Ausbau) und "Food Pairing:" (Speiseempfehlungen) enthält.
 - Prüfe, ob die Zusammenfassung die Kernaussagen der Quellen korrekt und vollständig widerspiegelt.
 - Prüfe, ob nichts grob Falsches erfunden wurde.
 - Prüfe, ob die Zusammenfassung ausreichend informativ ist.

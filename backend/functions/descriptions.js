@@ -65,16 +65,6 @@ export const fetchDescriptions = onWineRequest(async (req, res, user) => {
     descriptions = await extractDescriptionsFromSerp(serpObj);
   }
 
-  const uid = user.uid;
-  const name = nameParam || "No Name was Registered";
-
-  await searchCollection.add({
-    uid: uid,
-    name: name,
-    descriptions: descriptions,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
   if (Array.isArray(serpObj.organic_results)) {
     const max = Math.min(serpObj.organic_results.length, descriptions.length);
     for (let i = 0; i < max; i++) {

@@ -1,32 +1,3 @@
-## ✅ TO-DOs
-
-### Data Extraction
-
-- [ ] Rebsorte (evtl. weitere fehlende Daten?) mittels Gemini finden
-
-### Image Generation
-
-- [ ] Mineralik-/Süße-Sidebar + Bubbles hinzufügen (Angabe von Anja)
-- [ ] Bild downloadable (?)
-- [ ] Farben auf #E- Format (?) (Code Review)
-- [ ] Bild als multipart übergeben, nicht als base64
-	* oder vlt. sollte das ein anderer Endpoint sein, dann könnte man
-	  Summary vor dem Bild zeigen wenn z.B. das Netzwerk langsam ist
-
-### Database
-
-- [ ] Direkte Neugenerierung möglich (?)
-- [ ] History nach Datum sortieren
-- [ ] ganze descriptions speichern, aber nur die snippets anzeigen (?)
-
-### Etc
-
-- [ ] Vllt. message bei long loading-screens
-- [ ] Anzeige von Bild
-
-
-
-
 ## ✅ Code Quality Review: Colours of Wine --> Bis Montag!!
  
 ### 1. Architecture ✅

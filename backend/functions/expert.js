@@ -1,8 +1,9 @@
+/** API endpoint for wine expert image app (App for Anja). */
+
 import { onRequest } from 'firebase-functions/https';
 import { generateImage } from './image.js';
 import { buildValidatedSummaryFromDescriptions } from './summary.js';
 
-/** API endpoint for expert image app. */
 const acceptedCookie = "YldWbmMzcGxiblJ6WldkMFpXeGxibWww";
 export const expertGenerateImage = onRequest(async (req, res) => {
   if (acceptedCookie != req.query.cookie) {

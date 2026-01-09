@@ -6,7 +6,7 @@
  * like this it's good for user and storage
  */
 
-// map with key = WineData, value = list of descriptions
+// map with key = wine query string, value = list of descriptions
 class DescriptionCache {
   static final Map<String, List<Map<String, String>>> _cache = {};
 
