@@ -95,11 +95,18 @@ const effects = {
   },
 
   "body-range": () => {
-    [0, 0.1, 0.5, 0.8, 1].forEach((bodyVal) => {
+    // Test all 4 structure categories: leicht, mittel, voll, opulent
+    const bodyLevels = [
+      { value: 0.1, name: "leicht" },
+      { value: 0.35, name: "mittel" },
+      { value: 0.6, name: "voll" },
+      { value: 0.9, name: "opulent" },
+    ];
+    bodyLevels.forEach(({ value, name }) => {
       const { canvas, ctx } = createTestCanvas();
       applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
-      applyBody(ctx, centerX, centerY, maxRadius, width, height, testData.baseColor, bodyVal);
-      saveCanvas(canvas, `body_${bodyVal}`);
+      applyBody(ctx, centerX, centerY, maxRadius, width, height, testData.baseColor, value);
+      saveCanvas(canvas, `body_${name}_${value}`);
     });
   },
 
