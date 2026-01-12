@@ -6,3 +6,4 @@ export { applyNotes } from "./applyNotes.js";
 export { applyAcidity } from "./applyAcidity.js";
 export { applyDepth } from "./applyDepth.js";
 export { applySugar } from "./applySugar.js";
+export { applyBody } from "./applyBody.js";

@@ -66,6 +66,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   console.log("Acidity:", result.acidity);
   console.log("Residual Sugar:", result.residualSugar);
   console.log("Depth:", result.depth);
+  console.log("Body:", result.body);
   console.log("Fruit Notes:", JSON.stringify(result.fruitNotes, null, 2));
   console.log("Non-Fruit Notes:", JSON.stringify(result.nonFruitNotes, null, 2));
   console.log("=================================");
@@ -78,6 +79,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     acidity: result.acidity,
     residualSugar: result.residualSugar / 100,
     depth: result.depth,
+    body: result.body,
     fruitNotes: result.fruitNotes,
     nonFruitNotes: result.nonFruitNotes,
   });
@@ -187,6 +189,7 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
     acidity: obj.acidity,
     residualSugar: obj.residualSugar,
     depth: obj.depth,
+    body: obj.body,
     fruitNotes: obj.fruitNotes,
     nonFruitNotes: obj.nonFruitNotes,
     approved: review.approved
@@ -226,6 +229,7 @@ const WriterModelZod = z.object({
   acidity: z.number().min(0).max(1).describe("Perceived acidity level (0=flat, 1=very high)"),
   residualSugar: z.number().min(0).max(100).describe("Sweetness level (0=bone dry, 100=very sweet)"),
   depth: z.number().min(0).max(1).describe("Depth/complexity/persistence (0=simple/light, 1=deep/complex)"),
+  body: z.number().min(0).max(1).describe("Body/structure/texture (0=light/delicate, 1=full/opulent)"),
   fruitNotes: z.array(TastingNoteZod).max(5).describe("Fruit-based flavor/aroma notes with colors"),
   nonFruitNotes: z.array(TastingNoteZod).max(5).describe("Non-fruit flavor/aroma notes (earth, oak, mineral, etc.) with colors"),
 });
@@ -323,6 +327,21 @@ Faktoren die für hohe Tiefe sprechen:
 - Komplexer Ausbau (Barrique, lange Hefelagerung, etc.)
 - Herkunft von Spitzenlagen
 
+## Körper/Struktur (body) - Skala 0 bis 1
+Bewerte Körper, Balance, Textur und Struktur des Weins - eine haptische Wahrnehmung:
+- 0.0-0.25: Leicht - zarter, filigraner Körper (z.B. leichter Riesling, Vinho Verde)
+- 0.25-0.5: Mittel - ausgewogene Struktur (z.B. Pinot Noir, Grauburgunder)
+- 0.5-0.75: Voll - kräftiger Körper, gute Fülle (z.B. Chardonnay mit Holz, Merlot)
+- 0.75-1.0: Opulent - sehr voller Körper, dicht, konzentriert (z.B. Amarone, Châteauneuf-du-Pape)
+
+Faktoren die für hohen Körper sprechen:
+- Hoher Alkoholgehalt
+- Hoher Extraktgehalt
+- Dichte, Fülle, Volumen im Mund
+- Samtiger oder cremiger Charakter
+- Langer Ausbau in Barrique
+- Reife Trauben, konzentrierter Stil
+
 ## Frucht-Noten (fruitNotes) - maximal 5
 Identifiziere die Fruchtaromen und gib jedem eine HSV-Farbe und Intensität:
 - intensity: Wie prominent/dominant ist diese Note? (0=dezenter Hauch, 0.5=deutlich wahrnehmbar, 1=sehr dominant)
@@ -400,6 +419,12 @@ Prüfe folgende Punkte:
 
 ## Restzucker (residualSugar: 0-100)
 - Passt zur Beschreibung? (trocken=0-15, halbtrocken=15-30, lieblich=30-50, süß=50+)
+
+## Körper (body: 0-1)
+- Passt der Körper zur Beschreibung?
+- 0.0-0.25: leicht, filigran | 0.25-0.5: mittel | 0.5-0.75: voll | 0.75-1.0: opulent
+- Begriffe wie "dicht", "konzentriert", "opulent", "samtig" → höherer Körper
+- Begriffe wie "leicht", "filigran", "zart", "schlank" → niedrigerer Körper
 
 ## Frucht- und Nicht-Frucht-Noten
 - Sind die genannten Aromen in den Quellen erwähnt oder impliziert?

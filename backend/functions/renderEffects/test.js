@@ -9,12 +9,14 @@ import { applyNotes } from "./applyNotes.js";
 import { applyAcidity } from "./applyAcidity.js";
 import { applyDepth } from "./applyDepth.js";
 import { applySugar } from "./applySugar.js";
+import { applyBody } from "./applyBody.js";
 
 // Test data
 const testData = {
   baseColor: WineTypeBaseColors.red,
   acidity: 0.6,
   depth: 0.7,
+  body: 0.8,
   residualSugar: 0.3,
   fruitNotes: [
     { name: "Cherry", color: { h: 350, s: 0.85, v: 0.6 }, intensity: 0.8 },
@@ -85,10 +87,27 @@ const effects = {
     saveCanvas(canvas, "sugar");
   },
 
+  body: () => {
+    const { canvas, ctx } = createTestCanvas();
+    applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+    applyBody(ctx, centerX, centerY, maxRadius, width, height, testData.baseColor, testData.body);
+    saveCanvas(canvas, "body");
+  },
+
+  "body-range": () => {
+    [0, 0.1, 0.5, 0.8, 1].forEach((bodyVal) => {
+      const { canvas, ctx } = createTestCanvas();
+      applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+      applyBody(ctx, centerX, centerY, maxRadius, width, height, testData.baseColor, bodyVal);
+      saveCanvas(canvas, `body_${bodyVal}`);
+    });
+  },
+
   all: () => {
     const { canvas, ctx } = createTestCanvas();
     applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
     applyNotes(ctx, centerX, centerY, maxRadius, coreRadius, testData.fruitNotes, testData.nonFruitNotes);
+    applyBody(ctx, centerX, centerY, maxRadius, width, height, testData.baseColor, testData.body);
     applyAcidity(ctx, centerX, centerY, coreRadius * 0.8, testData.baseColor, testData.acidity, 0.3);
     applyDepth(ctx, centerX, centerY, coreRadius, testData.depth, 1.0);
     applySugar(ctx, centerX, centerY, maxRadius, width, height, testData.residualSugar);
@@ -107,7 +126,8 @@ if (!arg || arg === "help" || arg === "--help") {
   console.log("  notes    - Tasting note overlays");
   console.log("  acidity  - Acidity tint");
   console.log("  depth    - Depth darkness");
-  console.log("  sugar    - Sugar golden glow");
+  console.log("  sugar    - Sugar pink glow");
+  console.log("  body     - Body/texture cloudy noise");
   console.log("  all      - Full pipeline");
   console.log("");
   console.log("Example: node renderEffects/test.js depth");

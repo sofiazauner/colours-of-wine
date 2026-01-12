@@ -8,6 +8,7 @@ import {
   applyNotes,
   applyAcidity,
   applyDepth,
+  applyBody,
   applySugar,
 } from "./renderEffects/index.js";
 
@@ -42,6 +43,7 @@ export async function generateImage(data) {
     acidity,
     residualSugar,
     depth,
+    body,
     fruitNotes,
     nonFruitNotes,
   } = data;
@@ -72,14 +74,17 @@ export async function generateImage(data) {
   // 2. Tasting note overlays
   applyNotes(ctx, centerX, centerY, maxRadius, coreRadius, fruitNotes, nonFruitNotes);
 
-  // 3. Acidity and Depth (intensity based on wine type)
+  // 3. Body/structure (saturation boost + swirling movement)
+  applyBody(ctx, centerX, centerY, maxRadius, width, height, baseColor, body);
+
+  // 4. Acidity and Depth (intensity based on wine type)
   const { acidityIntensity, depthIntensity } = getEffectIntensities(wineType);
   const coreRadiusInner = coreRadius * 0.8;
 
   applyAcidity(ctx, centerX, centerY, coreRadiusInner, baseColor, acidity, acidityIntensity);
   applyDepth(ctx, centerX, centerY, coreRadius, depth, depthIntensity);
 
-  // 4. Sugar indicator (golden glow at bottom)
+  // 5. Sugar indicator (pink glow at bottom)
   applySugar(ctx, centerX, centerY, maxRadius, width, height, residualSugar);
 
   return canvas.toBuffer("image/png");
