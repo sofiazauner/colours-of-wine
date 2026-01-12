@@ -1,44 +1,86 @@
-/* image generation */
+/* Wine visualization image generation */
 
 import { createCanvas } from "canvas";
-import { convert } from "@asamuzakjp/css-color";
-import { WineComponents } from "./config.js";
+import {
+  hsvToHex,
+  WineTypeBaseColors,
+  applyBase,
+  applyNotes,
+  applyAcidity,
+  applyDepth,
+  applySugar,
+} from "./renderEffects/index.js";
 
-/** Generate an image out of info we got from Gemini. */
-export async function generateImage(colors, fillLevel) {  // for testing, should be determined by LLM
-  const height = 200;
-  const circleSectionWidth = 210;
-  const barSectionWidth = 60;
-
-  const canvas = createCanvas(circleSectionWidth + barSectionWidth, height);
-  const ctx = canvas.getContext('2d')
-  // create circular gradient
-  const cx = circleSectionWidth / 2;
-  const cy = height / 2;
-  const gradient = ctx.createRadialGradient(cx, cy, 15, cx, cy, 100);
-  const len = WineComponents.length;
-  for (let i = 0, len = WineComponents.length; i < len; i++) {
-    const color = colors[WineComponents[i]];
-    gradient.addColorStop(i / (len - 1), convert.colorToHex(color));
+/**
+ * Determine acidity/depth intensity based on wine type
+ * - Reds/fortified: depth is more important
+ * - Whites/sparkling: acidity is more important
+ */
+function getEffectIntensities(wineType) {
+  switch (wineType) {
+    case "red":
+    case "fortified":
+      return { acidityIntensity: 0.3, depthIntensity: 1.0 };
+    case "white":
+    case "sparkling":
+      return { acidityIntensity: 1.0, depthIntensity: 0.3 };
+    case "rose":
+    case "orange":
+      return { acidityIntensity: 0.7, depthIntensity: 0.5 };
+    case "dessert":
+      return { acidityIntensity: 0.5, depthIntensity: 0.8 };
+    default:
+      return { acidityIntensity: 0.5, depthIntensity: 0.5 };
   }
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, circleSectionWidth, height);
-  // create bar indicating sugar level
-  // background
-  const leftx = circleSectionWidth
-  ctx.fillStyle = "#ffffffff";
-  ctx.fillRect(leftx, 0, barSectionWidth, height);
-  // background bar
-  const padding = 18;
-  const barWidth = 35;
-  const barHeight = height - padding * 2;
-  const filledHeight = barHeight * Math.max(0, Math.min(fillLevel, 1));     // must be between 0 and 1 (meassured in %)
-  const barX = leftx + (barSectionWidth - barWidth) / 2;
-  const barY = padding + (barHeight - filledHeight);
-  ctx.fillStyle = "#e3e1e1ff";
-  ctx.fillRect(barX, padding, barWidth, barHeight);
-  // filled bar
-  ctx.fillStyle = gradient;
-  ctx.fillRect(barX, barY, barWidth, filledHeight);
-  return canvas.toBuffer("image/jpeg");
-};
+}
+
+/** Generate an image from wine visualization data */
+export async function generateImage(data) {
+  const {
+    wineType,
+    baseColor: geminiBaseColor,
+    acidity,
+    residualSugar,
+    depth,
+    fruitNotes,
+    nonFruitNotes,
+  } = data;
+
+  // Canvas setup
+  const width = 300;
+  const height = 300;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const maxRadius = 130;
+  const coreRadius = 35;
+
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+
+  // Get base color - use Gemini's color if provided, otherwise fall back to predefined
+  const baseColor = geminiBaseColor || WineTypeBaseColors[wineType] || WineTypeBaseColors.red;
+
+  // Fill background with very light tint of base color
+  ctx.fillStyle = hsvToHex(baseColor.h, baseColor.s * 0.08, 0.98);
+  ctx.fillRect(0, 0, width, height);
+
+  // === RENDER PIPELINE ===
+
+  // 1. Base wine color gradient
+  applyBase(ctx, centerX, centerY, maxRadius, baseColor);
+
+  // 2. Tasting note overlays
+  applyNotes(ctx, centerX, centerY, maxRadius, coreRadius, fruitNotes, nonFruitNotes);
+
+  // 3. Acidity and Depth (intensity based on wine type)
+  const { acidityIntensity, depthIntensity } = getEffectIntensities(wineType);
+  const coreRadiusInner = coreRadius * 0.8;
+
+  applyAcidity(ctx, centerX, centerY, coreRadiusInner, baseColor, acidity, acidityIntensity);
+  applyDepth(ctx, centerX, centerY, coreRadius, depth, depthIntensity);
+
+  // 4. Sugar indicator (golden glow at bottom)
+  applySugar(ctx, centerX, centerY, maxRadius, width, height, residualSugar);
+
+  return canvas.toBuffer("image/png");
+}

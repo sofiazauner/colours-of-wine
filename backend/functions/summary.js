@@ -1,7 +1,7 @@
 /* summarize descriptions from web */
 
 import logger from "firebase-functions/logger";
-import { getAi, GeminiModel, admin, WineComponents, onWineRequest, searchCollection } from "./config.js";
+import { getAi, GeminiModel, admin, onWineRequest, searchCollection } from "./config.js";
 import { generateImage } from "./image.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -59,15 +59,30 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     logger.error("Failed to generate validated summary", { error: e });
     return res.status(500).send("Failed to generate summary");
   }
-  // generate image based on colors embedded into summary (!! for testing: even if summary gets not approved !!)
+  // Log what Gemini gave us
+  console.log("=== GEMINI VISUALIZATION DATA ===");
+  console.log("Wine Type:", result.wineType);
+  console.log("Base Color:", JSON.stringify(result.baseColor));
+  console.log("Acidity:", result.acidity);
+  console.log("Residual Sugar:", result.residualSugar);
+  console.log("Depth:", result.depth);
+  console.log("Fruit Notes:", JSON.stringify(result.fruitNotes, null, 2));
+  console.log("Non-Fruit Notes:", JSON.stringify(result.nonFruitNotes, null, 2));
+  console.log("=================================");
+
+  // generate image based on wine data
   let imageBase64 = null;
-  const colors = result.colors;
-  if (colors) {
-    const image = await generateImage(colors, result.residualSugar / 100);
-    imageBase64 = image.toString("base64");
-    result.image = imageBase64;
-  }
-  delete result.colors;
+  const image = await generateImage({
+    wineType: result.wineType,
+    baseColor: result.baseColor,
+    acidity: result.acidity,
+    residualSugar: result.residualSugar / 100,
+    depth: result.depth,
+    fruitNotes: result.fruitNotes,
+    nonFruitNotes: result.nonFruitNotes,
+  });
+  imageBase64 = image.toString("base64");
+  result.image = imageBase64;
 
   // parse summary to extract structured sections (nose etc.)
   const summary = result.summary || "";
@@ -164,49 +179,60 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
   const end = new Date();
   logger.info(`Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`);
 
-  // !! for testing: return summary and colors even if not approved (so image can be generated) !!
-  return {summary: review.approved ? obj.summary : obj.summary, colors: obj.colors, residualSugar: obj.residualSugar, approved: review.approved};
+  // Return all visualization data
+  return {
+    summary: obj.summary,
+    wineType: obj.wineType,
+    baseColor: obj.baseColor,
+    acidity: obj.acidity,
+    residualSugar: obj.residualSugar,
+    depth: obj.depth,
+    fruitNotes: obj.fruitNotes,
+    nonFruitNotes: obj.nonFruitNotes,
+    approved: review.approved
+  };
 }
 
 
-const CSSColors = [
-  "aliceblue", "aqua", "aquamarine", "azure", "beige", "black",
-  "blanchedalmond", "blue", "blueviolet", "brown", "burlywood", "chartreuse",
-  "chocolate", "coral", "cornflowerblue", "cornsilk", "cyan", "darkblue",
-  "darkcyan", "darkgoldenrod", "darkgreen", "darkkhaki", "darkmagenta",
-  "darkolivegreen", "darkorange", "darkred", "darksalmon", "darkseagreen",
-  "darkslategray", "darkturquoise", "darkviolet", "deeppink", "deepskyblue",
-  "dimgray", "dimgrey", "dodgerblue", "firebrick", "floralwhite",
-  "forestgreen", "fuchsia", "ghostwhite", "gold", "goldenrod", "gray",
-  "green", "greenyellow", "grey", "hotpink", "indianred", "indigo",
-  "ivory", "khaki", "lavender", "lavenderblush", "lawngreen", "lightblue",
-  "lightcoral", "lightcyan", "lightgoldenrodyellow", "lightgray", "lightgreen",
-  "lightgrey", "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
-  "lightslategray", "lightslategrey", "lightsteelblue", "lightyellow",
-  "lime", "limegreen", "linen", "magenta", "mediumblue", "mediumorchid",
-  "mediumpurple", "mediumseagreen", "mediumslateblue", "mediumspringgreen",
-  "mediumturquoise", "mediumvioletred", "midnightblue", "mintcream",
-  "mistyrose", "navy", "oldlace", "olive", "olivedrab", "orange", "orangered",
-  "orchid", "palegoldenrod", "palegreen", "paleturquoise", "palevioletred",
-  "papayawhip", "peachpuff", "pink", "plum", "purple", "rebeccapurple", "red",
-  "rosybrown", "royalblue", "salmon", "sandybrown", "seagreen", "seashell",
-  "sienna", "silver", "skyblue", "slateblue", "slategray", "slategrey", "snow",
-  "springgreen", "steelblue", "tan", "teal", "thistle", "tomato", "turquoise",
-  "violet", "wheat", "white", "whitesmoke", "yellow", "yellowgreen"
+// Wine type enum - determines base color of visualization
+const WineTypes = [
+  "red",        // deep red wines
+  "white",      // white/yellow wines
+  "rose",       // pink wines
+  "orange",     // orange/amber wines (skin-contact whites)
+  "sparkling",  // champagne, prosecco, etc.
+  "dessert",    // sweet dessert wines (sauternes, tokaji)
+  "fortified",  // port, sherry, madeira
 ];
+
+// HSV color schema for tasting notes
+const HSVColorZod = z.object({
+  h: z.number().min(0).max(360).describe("Hue (0-360)"),
+  s: z.number().min(0).max(1).describe("Saturation (0-1)"),
+  v: z.number().min(0).max(1).describe("Value/Brightness (0-1)"),
+});
+
+// Tasting note with name, color, and intensity
+const TastingNoteZod = z.object({
+  name: z.string().describe("Name of the flavor/aroma note"),
+  color: HSVColorZod.describe("HSV color representing this note"),
+  intensity: z.number().min(0).max(1).describe("How prominent/intense this note is (0=subtle hint, 1=dominant)"),
+});
 
 const WriterModelZod = z.object({
   summary: z.string(),
-  residualSugar: z.number().min(0).max(100),
-  colors: (function() {
-    const obj = {};
-    const colors = z.enum(CSSColors)
-    for (const it of WineComponents)
-      obj[it] = colors;
-    return z.object(obj);
-  })()
+  wineType: z.enum(WineTypes).describe("Type of wine"),
+  baseColor: HSVColorZod.describe("Base wine color in HSV, adjusted from predefined colors based on wine description"),
+  acidity: z.number().min(0).max(1).describe("Perceived acidity level (0=flat, 1=very high)"),
+  residualSugar: z.number().min(0).max(100).describe("Sweetness level (0=bone dry, 100=very sweet)"),
+  depth: z.number().min(0).max(1).describe("Depth/complexity/persistence (0=simple/light, 1=deep/complex)"),
+  fruitNotes: z.array(TastingNoteZod).max(5).describe("Fruit-based flavor/aroma notes with colors"),
+  nonFruitNotes: z.array(TastingNoteZod).max(5).describe("Non-fruit flavor/aroma notes (earth, oak, mineral, etc.) with colors"),
 });
 const WriterModelSchema = zodToJsonSchema(WriterModelZod);
+
+// Export for image.js
+export { WineTypes };
 
 /** Writer-AI Agent: generate a summary of descriptions and colors, optionally taking feedback from the Reviewer Agent. */
 async function runWriterModel(descriptions, feedback, prevObj) {
@@ -219,36 +245,112 @@ ${prevObj? `Hier ist der vorheriger Draft der erstellten Zusammenfassung und Far
 ${feedback? `Hier hast du Feedback von einer Qualitätskontrolle-KI, das du zur Verbesserung des vorherigen Drafts nutzen sollst:\n${feedback}\n` : ""}
 
 Deine Aufgabe ist es, eine einheitliche, konsistente Zusammenfassung der bereitgestellten Weinbeschreibungen zu erstellen.
-Nachdem du die Zusammenfassung erstellt hast, musst du außerdem eine Liste von ENGLISCHEN CSS-Farben erstellen.
-
-Wähle Formulierung und Länge so, wie du es für am besten hältst.
+Zusätzlich musst du Farbassoziationen im HSV-Format für die Geschmacksnoten erstellen.
 
 WICHTIG:
-- Die Zusammenfassung MUSS die Sektionen: "Nose:" (Beschreibung der Aromatik und Geruchseindrücke), "Palate:" (Beschreibung des Geschmacks, der Textur und des Mundgefühls), "Finish:" (Beschreibung des Abgangs und Nachgeschmacks), "Vinification:" (Beschreibung der Vinifikation und des Ausbaus) und "Food Pairing:" (Speiseempfehlungen) enthalten. Wenn du zu einer dieser Sektion keine Informationen in den Quellen findest, schreibe trotzdem die Sektion mit "N/A" als Inhalt.
-- Fasse die wichtigsten Infos zusammen (Stil, Aroma, Herkunft, Charakter, Mineralik/Süße, Komplexität, Holzeinsatz/Ausbaustil, Intensität, Säure, Fruchtcharacter, Nicht-Frucht Komponenten).
-- Nutze die bereitgestellten Quellen als einzige Informationsquelle.
-- Erfinde keine Fakten, die in den Quellen nicht zumindest implizit angelegt sind.
-- Schreibe neutral und informativ.
-- Gebe unbedingt die Zusammenfassung erst aus, vor dem du die Farbassoziationen erstellst. Am Ende musst du dann sowohl diese Zusammenfassung als auch die Farbassoziationen ausgeben.
-- Die Farbassoziationen sollen gültige CSS-Farben sein.
-- Deine Ausgabe MUSS ausschließlich im folgenden JSON-Format sein:
+- Die Zusammenfassung MUSS die Sektionen: "Nose:" (Aromatik), "Palate:" (Geschmack/Mundgefühl), "Finish:" (Abgang), "Vinification:" (Vinifikation/Ausbau) und "Food Pairing:" (Speiseempfehlungen) enthalten. Falls keine Info vorhanden, schreibe "N/A".
+- Nutze die bereitgestellten Quellen als einzige Informationsquelle. Erfinde keine Fakten.
 
-Zusätzlich musst du den wahrgenommenen Restzucker des Weines bewerten. Stufe den Restzuckerwert auf einer Skala von 0 bis 100 ein.
-Je mehr Restzucker, desto höher der Wert (0 = trocken, 100 = sehr süß)!!
-{
-  "summary": "Deine Zusammenfassung hier. Sie enthält unteranderem: Nose: [Aromatik und Geruchseindrücke]\nPalate: [Geschmack, Textur und Mundgefühl]\nFinish: [Abgang und Nachgeschmack]\nVinification: [Vinifikation und Ausbau]\nFood Pairing: [Speiseempfehlungen]",
-  "colors": {
-    "Holzeinsatz": "FARBE FÜR HOLZEINSATZ/AUSBAUSTIL",
-    "Mousseux": "FARBE FÜR MOUSSEUX",
-    "Säure": "FARBE FÜR SÄURE",
-    "Fruchtcharacter": "FARBE FÜR FRUCHTCHARACTER",
-    "Nicht-Frucht-Komponenten": "FARBE FÜR NICHT-FRUCHT-KOMPONENTEN",
-    "Körper": "FARBE FÜR KÖRPER/BALANCE",
-    "Tannin": "FARBE FÜR TANNIN",
-    "Reifearomen": "FARBE FÜR REIFEAROMEN"
-  },
-  "residualSugar": Nummerischer Wert zwischen 0 und 100,
-}`;
+## Weintyp (wineType)
+Wähle den passenden Typ: "red", "white", "rose", "orange", "sparkling", "dessert", "fortified"
+
+## Grundfarbe (baseColor) - HSV
+Wähle eine passende Grundfarbe basierend auf dem Weintyp und passe sie an die Beschreibung an.
+Hier sind die Referenzfarben pro Weintyp - passe H/S/V leicht an basierend auf Alter, Rebsorte, Ausbau:
+
+RED (Rotwein):
+- Jung/leicht (Pinot Noir, Beaujolais): { h: 355, s: 0.75, v: 0.50 } - helleres Rubinrot
+- Klassisch (Merlot, Tempranillo): { h: 345, s: 0.85, v: 0.45 } - Rubinrot/Granat
+- Kräftig/gereift (Cabernet, Barolo): { h: 335, s: 0.90, v: 0.35 } - dunkles Granat
+
+WHITE (Weißwein):
+- Jung/leicht (Pinot Grigio): { h: 55, s: 0.20, v: 0.98 } - blassgelb
+- Klassisch (Chardonnay, Riesling): { h: 48, s: 0.35, v: 0.95 } - strohgelb
+- Gereift/Holz (Burgundy): { h: 42, s: 0.50, v: 0.90 } - goldgelb
+
+ROSE (Roséwein):
+- Provence-Stil (blass): { h: 15, s: 0.30, v: 0.92 } - Zwiebelschale
+- Klassisch: { h: 355, s: 0.45, v: 0.88 } - Lachsrosa
+- Kräftig: { h: 350, s: 0.55, v: 0.80 } - kräftiges Pink
+
+ORANGE (Orange Wine):
+- Leicht: { h: 30, s: 0.50, v: 0.90 } - helles Bernstein
+- Klassisch: { h: 25, s: 0.65, v: 0.85 } - Kupfer/Bernstein
+- Intensiv: { h: 20, s: 0.75, v: 0.75 } - dunkles Bernstein
+
+SPARKLING (Schaumwein):
+- Blanc de Blancs: { h: 55, s: 0.10, v: 0.98 } - fast farblos
+- Champagner: { h: 52, s: 0.15, v: 0.98 } - blassgelb
+- Rosé Champagner: { h: 5, s: 0.25, v: 0.95 } - zartrosa
+
+DESSERT (Dessertwein):
+- Sauternes, Tokaji: { h: 38, s: 0.75, v: 0.75 } - tiefes Gold/Bernstein
+- Eiswein: { h: 45, s: 0.60, v: 0.85 } - goldgelb
+
+FORTIFIED (Verstärkte Weine):
+- Fino Sherry: { h: 45, s: 0.40, v: 0.85 } - helles Bernstein
+- Ruby Port: { h: 350, s: 0.85, v: 0.40 } - dunkelrot
+- Tawny Port: { h: 15, s: 0.80, v: 0.30 } - mahagonibraun
+
+## Säure (acidity) - Skala 0 bis 1
+Bewerte die wahrgenommene Säure:
+- 0.0-0.2: Sehr niedrig (flach, weich, z.B. manche Merlots)
+- 0.2-0.4: Niedrig bis mittel (rund, ausgewogen)
+- 0.4-0.6: Mittel (frisch, lebhaft, typisch für viele Weißweine)
+- 0.6-0.8: Hoch (knackig, spritzig, z.B. Riesling, Sauvignon Blanc)
+- 0.8-1.0: Sehr hoch (stahlig, scharf, z.B. Chablis, Grüner Veltliner)
+
+## Restzucker (residualSugar) - Skala 0 bis 100
+- 0-5: Knochentrocken (brut nature, extra brut)
+- 5-15: Trocken (brut, dry)
+- 15-30: Halbtrocken (off-dry, extra dry bei Sekt)
+- 30-50: Lieblich (demi-sec)
+- 50-100: Süß (sweet, Dessert-/Eiswein)
+
+## Tiefe/Komplexität (depth) - Skala 0 bis 1
+Bewerte die Tiefe, Komplexität und den Nachhall des Weins:
+- 0.0-0.2: Zart - einfacher, leichter Wein ohne viel Tiefe
+- 0.2-0.4: Mittel - solide Struktur, moderate Komplexität
+- 0.4-0.6: Ausgeprägt - gute Tiefe, vielschichtig
+- 0.6-0.8: Tief - komplexe Aromen, langer Nachhall, Lagerpotential
+- 0.8-1.0: Komplex - außergewöhnliche Tiefe, viele Schichten, großes Alterungspotential
+
+Faktoren die für hohe Tiefe sprechen:
+- Langer Abgang/Nachhall
+- Vielschichtige, sich entwickelnde Aromen
+- Konzentration und Intensität
+- Lagerfähigkeit/Alterungspotential
+- Komplexer Ausbau (Barrique, lange Hefelagerung, etc.)
+- Herkunft von Spitzenlagen
+
+## Frucht-Noten (fruitNotes) - maximal 5
+Identifiziere die Fruchtaromen und gib jedem eine HSV-Farbe und Intensität:
+- intensity: Wie prominent/dominant ist diese Note? (0=dezenter Hauch, 0.5=deutlich wahrnehmbar, 1=sehr dominant)
+Beispiele:
+- Zitrone: { h: 55, s: 0.9, v: 1.0 }, intensity: 0.8
+- Grüner Apfel: { h: 90, s: 0.6, v: 0.8 }, intensity: 0.6
+- Pfirsich: { h: 35, s: 0.7, v: 0.95 }, intensity: 0.7
+- Erdbeere: { h: 0, s: 0.8, v: 0.9 }, intensity: 0.5
+- Schwarze Johannisbeere (Cassis): { h: 300, s: 0.7, v: 0.3 }, intensity: 0.9
+- Kirsche: { h: 350, s: 0.85, v: 0.6 }, intensity: 0.7
+- Passionsfrucht: { h: 45, s: 0.8, v: 0.9 }, intensity: 0.6
+- Brombeere: { h: 280, s: 0.6, v: 0.25 }, intensity: 0.8
+
+## Nicht-Frucht-Noten (nonFruitNotes) - maximal 5
+Identifiziere Nicht-Frucht-Aromen (Erde, Holz, Mineral, Gewürze, etc.) mit HSV-Farbe und Intensität:
+- intensity: Wie prominent/dominant ist diese Note? (0=dezenter Hauch, 0.5=deutlich wahrnehmbar, 1=sehr dominant)
+Beispiele:
+- Eiche/Vanille: { h: 35, s: 0.5, v: 0.7 }, intensity: 0.7
+- Toast/Brioche: { h: 30, s: 0.6, v: 0.6 }, intensity: 0.5
+- Mineralik/Feuerstein: { h: 200, s: 0.1, v: 0.7 }, intensity: 0.6
+- Tabak/Leder: { h: 25, s: 0.6, v: 0.35 }, intensity: 0.4
+- Pfeffer/Würze: { h: 15, s: 0.7, v: 0.4 }, intensity: 0.8
+- Kräuter: { h: 120, s: 0.5, v: 0.5 }, intensity: 0.5
+- Honig: { h: 45, s: 0.8, v: 0.85 }, intensity: 0.6
+- Rauch: { h: 0, s: 0.0, v: 0.3 }, intensity: 0.3
+- Erde/Pilze: { h: 30, s: 0.4, v: 0.35 }, intensity: 0.4
+
+Deine Ausgabe MUSS dem JSON-Schema entsprechen.`;
   const ai = await getAi()
   const response = await ai.models.generateContent({
     model: GeminiModel,
@@ -277,31 +379,37 @@ Du bist eine unabhängige Qualitätskontrolle-KI für Weinzusammenfassungen und 
 
 Hier sind die Quellen der Ursprungsbeschreibungen (Beschreibungen aus dem Web):${sourcesText}
 
-Hier ist die Zusammenfassung mit Farbassoziatonen, die überprüft werden soll:"${JSON.stringify(obj)}"
+Hier ist die Zusammenfassung mit Daten, die überprüft werden soll:
+${JSON.stringify(obj, null, 2)}
 
-Deine Aufgabe:
-- Prüfe, ob die Zusammenfassung die Sektionen "Nose:" (Aromatik), "Palate:" (Geschmack/Mundgefühl), "Finish:" (Abgang), "Vinification:" (Vinifikation/Ausbau) und "Food Pairing:" (Speiseempfehlungen) enthält.
-- Prüfe, ob die Zusammenfassung die Kernaussagen der Quellen korrekt und vollständig widerspiegelt.
-- Prüfe, ob nichts grob Falsches erfunden wurde.
-- Prüfe, ob die Zusammenfassung ausreichend informativ ist.
-- Prüfe, ob die Zusammenfassung aussagekräftig und ansprechend formuliert ist.
-- Prüfe, ob der Zusammenfassung wichtige Details fehlen.
-- Prüfe, ob Stil und Klarheit für eine Weinbeschreibung geeignet sind.
-- Prüfe, ob die Farben zu den bestimmten Aspekten des Weines gut passen.
-- Gib konstruktives Feedback zur Verbesserung der Zusammenfassung und der Farben, falls nötig.
-- Prüfe, ob der angegebene Restzuckerwert (0 bis 100) zur Beschreibung passt.
-- Lehne ab, wenn der Wert im Widerspruch zu Begriffen wie trocken, halbtrocken, süß etc. steht.
+Prüfe folgende Punkte:
 
+## Zusammenfassung
+- Enthält die Sektionen "Nose:", "Palate:", "Finish:", "Vinification:", "Food Pairing:"
+- Spiegelt die Kernaussagen der Quellen korrekt wider
+- Keine erfundenen Fakten
+
+## Weintyp (wineType)
+- Stimmt der Typ mit den Quellen überein? (red/white/rose/orange/sparkling/dessert/fortified)
+
+## Säure (acidity: 0-1)
+- Passt der Säurewert zur Beschreibung?
+- 0.0-0.2: flach, weich | 0.4-0.6: frisch | 0.8-1.0: stahlig, scharf
+- Begriffe wie "knackig", "lebhaft", "spritzig" → höhere Säure
+- Begriffe wie "weich", "rund", "samtig" → niedrigere Säure
+
+## Restzucker (residualSugar: 0-100)
+- Passt zur Beschreibung? (trocken=0-15, halbtrocken=15-30, lieblich=30-50, süß=50+)
+
+## Frucht- und Nicht-Frucht-Noten
+- Sind die genannten Aromen in den Quellen erwähnt oder impliziert?
+- Passen die HSV-Farben zu den Aromen? (z.B. Zitrone sollte gelb sein, nicht blau)
+- Maximal 5 pro Kategorie
 
 WICHTIG:
-- Wenn die Zusammenfassung in Ordnung ist, stimme zu.
-- Wenn die Zusammenfassung Mängel aufweist, lehne ab und gib konkretes Feedback zur Verbesserung.
--  Deine Ausgabe MUSS ausschließlich im folgenden JSON-Format sein:
-
-{
-  "approved": true/false,
-  "feedback": "Kurze Begründung + konkretes Feedback zur Verbesserung, falls (approved == false)"
-}`;
+- Sei nicht zu streng bei kleinen Abweichungen
+- Lehne nur ab, wenn etwas grob falsch ist
+- Deine Ausgabe MUSS dem JSON-Schema entsprechen.`;
   const ai = await getAi()
   const response = await ai.models.generateContent({
     model: GeminiModel,

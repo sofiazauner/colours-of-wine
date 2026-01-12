@@ -99,3 +99,28 @@ Backend API (Cloud Functions / HTTP)
 - Use constants from AppConstants and ErrorMessages no hardcoded Strings/Numbers
 - In case of errors: UI displays SnackBar, while service layer throws exception
 - Add new features in according files in the project struture (models, API-calls, ...)
+
+## Testing Render Effects
+
+The wine image generation pipeline consists of modular render effects. To test individual effects:
+
+```bash
+cd backend/functions
+node renderEffects/test.js <effect>
+```
+
+Available effects:
+- `base` - Base wine color gradient
+- `notes` - Tasting note overlays
+- `acidity` - Acidity tint in center
+- `depth` - Depth/complexity darkness
+- `sugar` - Sugar glow indicator
+- `all` - Full rendering pipeline
+
+Example:
+```bash
+node renderEffects/test.js depth   # Test depth effect only
+node renderEffects/test.js all     # Test full pipeline
+```
+
+Output images are saved as `test_<effect>.png` in the `backend/functions` directory.

@@ -67,3 +67,10 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+CLAUDE.md
+*test*.png
+
+colours_of_wine/ios/*
+colours_of_wine/macos/*
+colours_of_wine/android/*

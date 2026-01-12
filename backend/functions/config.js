@@ -7,7 +7,13 @@ import admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
 import { getFirestore } from "firebase-admin/firestore";
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+import dotenv from "dotenv";
 
+// Load .env file for local development
+dotenv.config();
+
+// Check if running locally (env vars set) or in production (use Secret Manager)
+const isLocal = process.env.GEMINI_API_KEY || process.env.SERP_API_KEY;
 
 // max number of containers
 setGlobalOptions({ maxInstances: 10 });
@@ -16,16 +22,54 @@ setGlobalOptions({ maxInstances: 10 });
 admin.initializeApp();
 export { admin };
 
-// firestore
-const db = getFirestore("wine-data");
-export const searchCollection = db.collection("/search-history");
+// firestore - mock for local development without Firebase
+let searchCollection;
+if (isLocal && !process.env.FIRESTORE_EMULATOR_HOST) {
+  // Mock collection for local dev without Firestore
+  const mockDocs = [];
+  searchCollection = {
+    add: async (data) => {
+      const id = `mock-${Date.now()}`;
+      mockDocs.push({ id, data: { ...data, createdAt: { toMillis: () => Date.now() } } });
+      logger.info("Mock Firestore add:", data);
+      return { id };
+    },
+    where: () => ({
+      get: async () => ({
+        forEach: (fn) => mockDocs.forEach((doc) => fn({ id: doc.id, data: () => doc.data }))
+      })
+    }),
+    doc: (id) => ({
+      get: async () => {
+        const doc = mockDocs.find((d) => d.id === id);
+        return {
+          exists: !!doc,
+          data: () => doc?.data
+        };
+      },
+      delete: async () => {
+        const idx = mockDocs.findIndex((d) => d.id === id);
+        if (idx >= 0) mockDocs.splice(idx, 1);
+      }
+    })
+  };
+} else {
+  const db = getFirestore("wine-data");
+  searchCollection = db.collection("/search-history");
+}
+export { searchCollection };
 
-/** 
- * gemini-/serApi-key access via Google Cloud Secret Manager 
+/**
+ * gemini-/serApi-key access - uses .env locally, Secret Manager in production
  * */
 const client = new SecretManagerServiceClient();
 const secretCache = {};
 async function getSecret(name) {
+  // Check .env first (local development)
+  if (process.env[name]) {
+    return process.env[name];
+  }
+
   if (secretCache[name]) return secretCache[name];
 
   const projectId = process.env.GCLOUD_PROJECT;

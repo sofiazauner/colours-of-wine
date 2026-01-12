@@ -2,3 +2,9 @@
 /build/
 /firebase-debug.log
 /.flutter-plugins-dependencies
+ios/Podfile
+macos/Podfile
+ios/Flutter/Debug.xcconfig
+ios/Flutter/Release.xcconfig
+macos/Flutter/Flutter-Debug.xcconfig
+macos/Flutter/Flutter-Release.xcconfig
