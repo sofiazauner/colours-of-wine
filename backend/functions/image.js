@@ -10,6 +10,7 @@ import {
   applyDepth,
   applyBody,
   applySugar,
+  applyBarrel,
 } from "./renderEffects/index.js";
 
 /**
@@ -46,6 +47,8 @@ export async function generateImage(data) {
     body,
     fruitNotes,
     nonFruitNotes,
+    barrelMaterial,
+    barrelIntensity,
   } = data;
 
   // Canvas setup
@@ -86,6 +89,9 @@ export async function generateImage(data) {
 
   // 5. Sugar indicator (pink glow at bottom)
   applySugar(ctx, centerX, centerY, maxRadius, width, height, residualSugar);
+
+  // 6. Barrel material vignette (oak = brown, stainless = blue-gray)
+  applyBarrel(ctx, centerX, centerY, width, height, barrelMaterial, barrelIntensity);
 
   return canvas.toBuffer("image/png");
 }

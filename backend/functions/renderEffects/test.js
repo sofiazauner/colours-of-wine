@@ -10,6 +10,7 @@ import { applyAcidity } from "./applyAcidity.js";
 import { applyDepth } from "./applyDepth.js";
 import { applySugar } from "./applySugar.js";
 import { applyBody } from "./applyBody.js";
+import { applyBarrel } from "./applyBarrel.js";
 
 // Test data
 const testData = {
@@ -26,6 +27,8 @@ const testData = {
     { name: "Oak", color: { h: 35, s: 0.5, v: 0.7 }, intensity: 0.7 },
     { name: "Tobacco", color: { h: 25, s: 0.6, v: 0.35 }, intensity: 0.4 },
   ],
+  barrelMaterial: "oak",
+  barrelIntensity: 0.5,
 };
 
 // Canvas setup
@@ -110,6 +113,33 @@ const effects = {
     });
   },
 
+  barrel: () => {
+    const { canvas, ctx } = createTestCanvas();
+    applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+    applyBarrel(ctx, centerX, centerY, width, height, testData.barrelMaterial, testData.barrelIntensity);
+    saveCanvas(canvas, "barrel");
+  },
+
+  "barrel-oak": () => {
+    const intensities = [0.3, 0.5, 0.7, 0.9];
+    intensities.forEach((intensity) => {
+      const { canvas, ctx } = createTestCanvas();
+      applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+      applyBarrel(ctx, centerX, centerY, width, height, "oak", intensity);
+      saveCanvas(canvas, `barrel_oak_${intensity}`);
+    });
+  },
+
+  "barrel-stainless": () => {
+    const intensities = [0.3, 0.5, 0.7, 0.9];
+    intensities.forEach((intensity) => {
+      const { canvas, ctx } = createTestCanvas();
+      applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+      applyBarrel(ctx, centerX, centerY, width, height, "stainless", intensity);
+      saveCanvas(canvas, `barrel_stainless_${intensity}`);
+    });
+  },
+
   all: () => {
     const { canvas, ctx } = createTestCanvas();
     applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
@@ -118,6 +148,7 @@ const effects = {
     applyAcidity(ctx, centerX, centerY, coreRadius * 0.8, testData.baseColor, testData.acidity, 0.3);
     applyDepth(ctx, centerX, centerY, coreRadius, testData.depth, 1.0);
     applySugar(ctx, centerX, centerY, maxRadius, width, height, testData.residualSugar);
+    applyBarrel(ctx, centerX, centerY, width, height, testData.barrelMaterial, testData.barrelIntensity);
     saveCanvas(canvas, "all");
   },
 };
@@ -129,13 +160,16 @@ if (!arg || arg === "help" || arg === "--help") {
   console.log("Usage: node renderEffects/test.js <effect>");
   console.log("");
   console.log("Available effects:");
-  console.log("  base     - Base wine color gradient");
-  console.log("  notes    - Tasting note overlays");
-  console.log("  acidity  - Acidity tint");
-  console.log("  depth    - Depth darkness");
-  console.log("  sugar    - Sugar pink glow");
-  console.log("  body     - Body/texture cloudy noise");
-  console.log("  all      - Full pipeline");
+  console.log("  base              - Base wine color gradient");
+  console.log("  notes             - Tasting note overlays");
+  console.log("  acidity           - Acidity tint");
+  console.log("  depth             - Depth darkness");
+  console.log("  sugar             - Sugar pink glow");
+  console.log("  body              - Body/texture cloudy noise");
+  console.log("  barrel            - Barrel material vignette (default test is for oak barrel with medium intensity)");
+  console.log("  barrel-oak        - Oak barrel at different intensities");
+  console.log("  barrel-stainless  - Stainless steel barrel at different intensities");
+  console.log("  all               - Full pipeline");
   console.log("");
   console.log("Example: node renderEffects/test.js depth");
   process.exit(0);
