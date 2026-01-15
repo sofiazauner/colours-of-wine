@@ -69,6 +69,8 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   console.log("Body:", result.body);
   console.log("Fruit Notes:", JSON.stringify(result.fruitNotes, null, 2));
   console.log("Non-Fruit Notes:", JSON.stringify(result.nonFruitNotes, null, 2));
+  console.log("Barrel Material:", result.barrelMaterial);
+  console.log("Barrel Intensity:", result.barrelIntensity);
   console.log("=================================");
 
   // generate image based on wine data
@@ -82,6 +84,8 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     body: result.body,
     fruitNotes: result.fruitNotes,
     nonFruitNotes: result.nonFruitNotes,
+    barrelMaterial: result.barrelMaterial,
+    barrelIntensity: result.barrelIntensity,
   });
   imageBase64 = image.toString("base64");
   result.image = imageBase64;
@@ -192,6 +196,8 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
     body: obj.body,
     fruitNotes: obj.fruitNotes,
     nonFruitNotes: obj.nonFruitNotes,
+    barrelMaterial: obj.barrelMaterial,
+    barrelIntensity: obj.barrelIntensity,
     approved: review.approved
   };
 }
@@ -232,6 +238,8 @@ const WriterModelZod = z.object({
   body: z.number().min(0).max(1).describe("Body/structure/texture (0=light/delicate, 1=full/opulent)"),
   fruitNotes: z.array(TastingNoteZod).max(5).describe("Fruit-based flavor/aroma notes with colors"),
   nonFruitNotes: z.array(TastingNoteZod).max(5).describe("Non-fruit flavor/aroma notes (earth, oak, mineral, etc.) with colors"),
+  barrelMaterial: z.enum(["oak", "stainless", "none"]).describe("Barrel material: oak (Holzfass/Barrique), stainless (Edelstahlfass), or none (kein Ausbau erwähnt)"),
+  barrelIntensity: z.number().min(0).max(1).describe("Intensity of barrel influence (0=no influence, 1=strong influence from oak/stainless steel barrel)"),
 });
 const WriterModelSchema = zodToJsonSchema(WriterModelZod);
 
@@ -369,6 +377,19 @@ Beispiele:
 - Rauch: { h: 0, s: 0.0, v: 0.3 }, intensity: 0.3
 - Erde/Pilze: { h: 30, s: 0.4, v: 0.35 }, intensity: 0.4
 
+## Fassmaterial (barrelMaterial) und Intensität (barrelIntensity)
+Identifiziere das Fassmaterial:
+- "oak": Wenn der Wein im Holzfass/Barrique/Eiche erzeugt wird (z.B. "Barrique-Ausbau", "Eichenfass", "Holzfass", "oak-aged", "wood", "Holz")
+- "stainless": Wenn der Wein im Edelstahlfass/Stainless Steel erzeugt wird (z.B. "Edelstahlfass", "stainless steel", "Stahltank", "Edelstahl")
+- "none": Wenn kein spezifisches Fassmaterial erwähnt wird oder es unklar ist
+
+Die Intensität (barrelIntensity: 0-1) bestimmt, wie stark das Fassmaterial den Wein beeinflusst:
+- 0.0-0.2: Sehr subtil - kaum wahrnehmbarer Einfluss
+- 0.2-0.4: Leicht - dezenter Einfluss des Ausbaus
+- 0.4-0.6: Mittel - deutlicher Einfluss (z.B. "leicht von Eiche geprägt")
+- 0.6-0.8: Stark - prägender Einfluss (z.B. "ausgeprägte Barrique-Noten", "stark von Holz geprägt")
+- 0.8-1.0: Sehr stark - dominanter Einfluss (z.B. "intensive Eichennoten", "langer Barrique-Ausbau")
+
 Deine Ausgabe MUSS dem JSON-Schema entsprechen.`;
   const ai = await getAi()
   const response = await ai.models.generateContent({
@@ -430,6 +451,13 @@ Prüfe folgende Punkte:
 - Sind die genannten Aromen in den Quellen erwähnt oder impliziert?
 - Passen die HSV-Farben zu den Aromen? (z.B. Zitrone sollte gelb sein, nicht blau)
 - Maximal 5 pro Kategorie
+
+## Fassmaterial (barrelMaterial) und Intensität (barrelIntensity)
+- Wurde das Fassmaterial korrekt erkannt? (oak/stainless/none)
+- Passt die Intensität zur Beschreibung? (0=kein Einfluss, 1=starker Einfluss)
+- Begriffe wie "Barrique", "Eichenfass", "Holzfass" → oak
+- Begriffe wie "Edelstahlfass", "Stahltank", "stainless steel" → stainless
+- Wenn nichts erwähnt → none
 
 WICHTIG:
 - Sei nicht zu streng bei kleinen Abweichungen
