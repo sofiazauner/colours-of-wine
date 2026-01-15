@@ -10,6 +10,7 @@ import { applyAcidity } from "./applyAcidity.js";
 import { applyDepth } from "./applyDepth.js";
 import { applySugar } from "./applySugar.js";
 import { applyBody } from "./applyBody.js";
+import { applyBubbles } from "./applyBubbles.js";
 
 // Test data
 const testData = {
@@ -18,6 +19,7 @@ const testData = {
   depth: 0.7,
   body: 0.8,
   residualSugar: 0.3,
+  spritz: 0.75,
   fruitNotes: [
     { name: "Cherry", color: { h: 350, s: 0.85, v: 0.6 }, intensity: 0.8 },
     { name: "Blackberry", color: { h: 280, s: 0.6, v: 0.25 }, intensity: 0.6 },
@@ -94,6 +96,14 @@ const effects = {
     saveCanvas(canvas, "body");
   },
 
+  bubbles: () => {
+    const { canvas, ctx } = createTestCanvas();
+    applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+    applyBody(ctx, centerX, centerY, maxRadius, width, height, testData.baseColor, testData.body);
+    applyBubbles(ctx, centerX, centerY, maxRadius, width, height, testData.spritz, 1.0);
+    saveCanvas(canvas, "bubbles");
+  },
+
   "body-range": () => {
     // Test all 4 structure categories: leicht, mittel, voll, opulent
     const bodyLevels = [
@@ -118,6 +128,7 @@ const effects = {
     applyAcidity(ctx, centerX, centerY, coreRadius * 0.8, testData.baseColor, testData.acidity, 0.3);
     applyDepth(ctx, centerX, centerY, coreRadius, testData.depth, 1.0);
     applySugar(ctx, centerX, centerY, maxRadius, width, height, testData.residualSugar);
+    applyBubbles(ctx, centerX, centerY, maxRadius, width, height, testData.spritz, 1.0);
     saveCanvas(canvas, "all");
   },
 };
@@ -135,6 +146,7 @@ if (!arg || arg === "help" || arg === "--help") {
   console.log("  depth    - Depth darkness");
   console.log("  sugar    - Sugar pink glow");
   console.log("  body     - Body/texture cloudy noise");
+  console.log("  bubbles  - Effervescence / bubbles (spritz)");
   console.log("  all      - Full pipeline");
   console.log("");
   console.log("Example: node renderEffects/test.js depth");
