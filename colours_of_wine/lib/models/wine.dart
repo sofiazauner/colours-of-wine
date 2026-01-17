@@ -174,11 +174,12 @@ class Wine {
   
   /// convert from backend description format to WineDescription format
   static WineDescription descriptionFromMap(Map<String, String> descMap, {int index = 0}) {
+    final text = descMap['articleText'] != "" && descMap['articleText'] != null ? descMap['articleText'] : descMap['snippet'];
     return WineDescription(
       id: 'desc_${DateTime.now().millisecondsSinceEpoch}_$index',
       source: descMap['title'] ?? 'Unknown',
       url: descMap['url'],
-      text: descMap['articleText'] ?? descMap['snippet'] ?? '',
+      text: text ?? '',
     );
   }
 
