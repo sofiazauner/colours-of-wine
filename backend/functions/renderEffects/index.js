@@ -8,5 +8,5 @@ export { applyDepth } from "./applyDepth.js";
 export { applySugar } from "./applySugar.js";
 export { applyBody } from "./applyBody.js";
 export { applyBarrel } from "./applyBarrel.js";
-
 export { applyBubbles } from "./applyBubbles.js";
+export { applyMinerality } from "./applyMinerality.js";

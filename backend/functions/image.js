@@ -11,6 +11,7 @@ import {
   applyBody,
   applySugar,
   applyBarrel,
+  applyMinerality,
 } from "./renderEffects/index.js";
 
 /**
@@ -49,6 +50,9 @@ export async function generateImage(data) {
     nonFruitNotes,
     barrelMaterial,
     barrelIntensity,
+    mineralityMaterial,
+    mineralityPlacement,
+    mineralityIntensity,
   } = data;
 
   // Canvas setup
@@ -88,10 +92,13 @@ export async function generateImage(data) {
   applyDepth(ctx, centerX, centerY, coreRadius, depth, depthIntensity);
 
   // 5. Sugar indicator (pink glow at bottom)
-  applySugar(ctx, centerX, centerY, maxRadius, width, height, residualSugar);
+  applySugar(ctx, centerX, centerY, maxRadius, width, height, residualSugar / 100);
 
   // 6. Barrel material vignette (oak = brown, stainless = blue-gray)
   applyBarrel(ctx, centerX, centerY, width, height, barrelMaterial, barrelIntensity);
+
+  // 7. Minerality
+  applyMinerality(ctx, centerX, centerY, maxRadius, width, height, mineralityMaterial, mineralityPlacement, mineralityIntensity);
 
   return canvas.toBuffer("image/png");
 }

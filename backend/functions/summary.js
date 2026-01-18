@@ -40,12 +40,14 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     if (typeof d.articleText === "string" && d.articleText.trim().length > 0) {
       return d.articleText.trim();
     }
+    console.log("description", JSON.stringify(d));
     if (typeof d.snippet === "string" && d.snippet.trim().length > 0) {
       return d.snippet.trim();
     }
     return "";
   }).filter((t) => t.length > 0);
 
+  console.log("descriptions", JSON.stringify(descriptionTexts))
   if (descriptionTexts.length === 0) {
     logger.info("All provided descriptions were empty", { q });
     return res.status(400).send("Provided descriptions do not contain usable text.");
@@ -71,22 +73,14 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   console.log("Non-Fruit Notes:", JSON.stringify(result.nonFruitNotes, null, 2));
   console.log("Barrel Material:", result.barrelMaterial);
   console.log("Barrel Intensity:", result.barrelIntensity);
+  console.log("Minerality Material:", result.mineralityMaterial);
+  console.log("Minerality Intensity:", result.mineralityIntensity);
+  console.log("Minerality Placement:", result.mineralityPlacement);
   console.log("=================================");
 
   // generate image based on wine data
   let imageBase64 = null;
-  const image = await generateImage({
-    wineType: result.wineType,
-    baseColor: result.baseColor,
-    acidity: result.acidity,
-    residualSugar: result.residualSugar / 100,
-    depth: result.depth,
-    body: result.body,
-    fruitNotes: result.fruitNotes,
-    nonFruitNotes: result.nonFruitNotes,
-    barrelMaterial: result.barrelMaterial,
-    barrelIntensity: result.barrelIntensity,
-  });
+  const image = await generateImage(result);
   imageBase64 = image.toString("base64");
   result.image = imageBase64;
 
@@ -163,7 +157,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
  * Operate the agentic writer/reviewer loop. Each iteration asks the reviewer to review the writer's output.
  * If MaxIterationCount is exceeded, the loop is stopped.
  */
-const MaxIterationCount = 3;
+const MaxIterationCount = 5;
 export async function buildValidatedSummaryFromDescriptions(descriptions) {
   if (!Array.isArray(descriptions) || descriptions.length === 0) {
     throw new TypeError("No descriptions available to summarize");
@@ -198,6 +192,9 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
     nonFruitNotes: obj.nonFruitNotes,
     barrelMaterial: obj.barrelMaterial,
     barrelIntensity: obj.barrelIntensity,
+    mineralityMaterial: obj.mineralityMaterial,
+    mineralityIntensity: obj.mineralityIntensity,
+    mineralityPlacement: obj.mineralityPlacement,
     approved: review.approved
   };
 }
@@ -240,6 +237,9 @@ const WriterModelZod = z.object({
   nonFruitNotes: z.array(TastingNoteZod).max(5).describe("Non-fruit flavor/aroma notes (earth, oak, mineral, etc.) with colors"),
   barrelMaterial: z.enum(["oak", "stainless", "none"]).describe("Barrel material: oak (Holzfass/Barrique), stainless (Edelstahlfass), or none (kein Ausbau erwähnt)"),
   barrelIntensity: z.number().min(0).max(1).describe("Intensity of barrel influence (0=no influence, 1=strong influence from oak/stainless steel barrel)"),
+  mineralityMaterial: z.enum(["chalk", "steel", "stone", "slate", "forest", "compost", "fungi"]).describe("Minerality: chalk (Kreide), steel (Stahl), stone (Stein), slate (Schiefer), forest (Waldboden), compost (Kompost), fungi (Pilze)"),
+  mineralityPlacement: z.number().min(0).max(1).describe("Placement of minerality (0=middle, 1=edges)"),
+  mineralityIntensity: z.number().min(0).max(1).describe("Intensity of minerality influence (0=no influence, 1=strong influence from minerality)"),
 });
 const WriterModelSchema = zodToJsonSchema(WriterModelZod);
 
@@ -390,6 +390,29 @@ Die Intensität (barrelIntensity: 0-1) bestimmt, wie stark das Fassmaterial den 
 - 0.6-0.8: Stark - prägender Einfluss (z.B. "ausgeprägte Barrique-Noten", "stark von Holz geprägt")
 - 0.8-1.0: Sehr stark - dominanter Einfluss (z.B. "intensive Eichennoten", "langer Barrique-Ausbau")
 
+## Mineralik: Material (mineralityMaterial), Intensität (mineralityIntensity), und Platzierung (mineralityPlacement)
+Wähle eine passende Beschreibung der Mineralik:
+- Kreide (chalk)
+- Stahl (steel)
+- Stein (stone)
+- Schiefer (slate)
+- Waldboden (forest)
+- Kompost (compost)
+- Pilze (fungi)
+- Keine (none) - falls keine Mineralik bestimmt wurde.
+
+Die Intensität (mineralityIntensity: 0-1) bestimmt, wie stark die Mineralik den Wein beeinflusst.
+- 0.0-0.2: Sehr subtil - kaum wahrnehmbarer Einfluss
+- 0.2-0.4: Leicht - dezenter Einfluss des Ausbaus
+- 0.4-0.6: Mittel - deutlicher Einfluss
+- 0.6-0.8: Stark - prägender Einfluss
+- 0.8-1.0: Sehr stark - dominanter Einfluss
+
+Die Platzierung (mineralityPlacement: 0-1) bestimmt, worauf die Mineralität am meisten Einfluss hat:
+- 0.0-0.3: Nachhall - Einfluss auf Nachhall (Innen)
+- 0.3-0.7: Gaumen - Einfluss auf Gaumen (Mitte)
+- 0.7-1.0: Nase - Einfluss auf Nase (Aussen)
+
 Deine Ausgabe MUSS dem JSON-Schema entsprechen.`;
   const ai = await getAi()
   const response = await ai.models.generateContent({
@@ -458,6 +481,10 @@ Prüfe folgende Punkte:
 - Begriffe wie "Barrique", "Eichenfass", "Holzfass" → oak
 - Begriffe wie "Edelstahlfass", "Stahltank", "stainless steel" → stainless
 - Wenn nichts erwähnt → none
+
+## Mineralik: Material (mineralityMaterial) und Platzierung (mineralityPlacement)
+- Wurde die Mineralik korrekt erkannt?
+- Passt die Platzierung zur Beschreibung? (0=in der Mitte, 1=am Rand)
 
 WICHTIG:
 - Sei nicht zu streng bei kleinen Abweichungen

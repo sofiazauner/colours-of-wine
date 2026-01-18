@@ -100,15 +100,13 @@ class WineRepository {
     }
     final data = jsonDecode(response.body);
     final results = <Map<String, String>>[];
-    if (data['organic_results'] != null) {
-      for (var item in data['organic_results']) {
-        results.add({
-          "title": item['title'] ?? "No title",
-          "snippet": item['snippet'] ?? "",
-          "url": item['link'] ?? "",
-          "articleText": item['articleText'] ?? "",
-        });
-      }
+    for (var item in data) {
+      results.add({
+        "title": item['title'] ?? "No title",
+        "snippet": item['snippet'] ?? "",
+        "url": item['url'] ?? "",
+        "articleText": item['articleText'] ?? "",
+      });
     }
     return results;
   }
