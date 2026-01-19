@@ -54,7 +54,7 @@ export function applyBubbles(
    ========================= */
 
 function getSpritzStage(s) {
-    // Stufen wie bei applyBody: mehrere klar definierte Bereiche
+    // Parameter je Stufe
     if (s < 0.20) {
         return {
             name: "still",
@@ -145,8 +145,7 @@ function drawEdgeBokehOutside(ctx, cx, cy, R, width, height, s, rand, stage) {
     ];
     const weightSum = palette.reduce((sum, p) => sum + p[3], 0);
 
-    // Außen soll „außen“ bleiben (wie dein funktionierender Stand),
-    // aber Stufe beeinflusst die Aggressivität minimal.
+    // Keepout-Kreis je Stufe
     const keepout = R * stage.keepout;
     const keepout2 = keepout * keepout;
 
