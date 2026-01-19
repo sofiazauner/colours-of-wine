@@ -52,9 +52,7 @@ export async function generateImage(data) {
     nonFruitNotes,
     barrelMaterial,
     barrelIntensity,
-    mineralityMaterial,
-    mineralityPlacement,
-    mineralityIntensity,
+    mineralityNotes,
   } = data;
 
   // Canvas setup
@@ -132,18 +130,26 @@ export async function generateImage(data) {
     barrelIntensity,
   );
 
-  // 7. Minerality
-  applyMinerality(
-    ctx,
-    centerX,
-    centerY,
-    maxRadius,
-    width,
-    height,
-    mineralityMaterial,
-    mineralityPlacement,
-    mineralityIntensity,
-  );
+  // 7. Minerality (multiple notes, max 500 sparkles total)
+  // Each note gets an equal share of budget, then scaled by its intensity
+  // Intensity also affects opacity
+  if (mineralityNotes && mineralityNotes.length > 0) {
+    const sharePerNote = 1 / mineralityNotes.length;
+    for (const note of mineralityNotes) {
+      applyMinerality(
+        ctx,
+        centerX,
+        centerY,
+        maxRadius,
+        width,
+        height,
+        note.color,
+        note.placement,
+        sharePerNote * note.intensity, // count factor
+        note.intensity, // opacity factor
+      );
+    }
+  }
 
   // 8. Bubbles/effervescence (spritz)
   applyBubbles(ctx, centerX, centerY, maxRadius, width, height, spritz, 1.0);

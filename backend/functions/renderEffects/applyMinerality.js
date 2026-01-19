@@ -1,23 +1,14 @@
+import { hsvToRgb } from "./colorUtils.js";
+
 function clamp(n, lo, hi) {
   return Math.max(Math.min(n, hi), lo);
 }
 
-// Material colors with RGB for gradient effects
-const materialColors = {
-  chalk: { r: 245, g: 235, b: 220 },
-  steel: { r: 176, g: 196, b: 222 },
-  stone: { r: 140, g: 140, b: 140 },
-  slate: { r: 119, g: 136, b: 153 },
-  forest: { r: 139, g: 90, b: 43 },
-  compost: { r: 160, g: 82, b: 45 },
-  fungi: { r: 210, g: 180, b: 140 },
-};
-
-function drawSparkle(ctx, x, y, size, color, rotation) {
+function drawSparkle(ctx, x, y, size, color, rotation, intensityOpacity = 1) {
   const { r, g, b } = color;
 
-  // Random variations
-  const opacityMult = 0.5 + Math.random() * 0.5; // 0.5 - 1.0
+  // Random variations, scaled by intensity
+  const opacityMult = (0.5 + Math.random() * 0.5) * (0.4 + intensityOpacity * 0.6); // intensity affects base opacity
   const colorShift = Math.floor((Math.random() - 0.5) * 30); // -15 to +15
   const sr = clamp(r + colorShift, 0, 255);
   const sg = clamp(g + colorShift, 0, 255);
@@ -113,14 +104,17 @@ export function applyMinerality(
   maxRadius,
   width,
   height,
-  mineralityMaterial,
+  hsvColor,
   mineralityPlacement,
-  mineralityIntensity,
+  countFactor,
+  intensityOpacity = 1,
 ) {
-  const color = materialColors[mineralityMaterial];
-  if (!color) return; // "none" or unknown
+  if (!hsvColor) return;
 
-  const n = Math.floor(mineralityIntensity * 500);
+  // Convert HSV to RGB
+  const color = hsvToRgb(hsvColor.h, hsvColor.s, hsvColor.v);
+
+  const n = Math.floor(countFactor * 500);
 
   for (let i = 0; i <= n; i++) {
     const angle = Math.random() * 2 * Math.PI;
@@ -133,9 +127,9 @@ export function applyMinerality(
     const x = centerX + Math.sin(angle) * radius;
     const y = centerY + Math.cos(angle) * radius;
 
-    const size = 1 + Math.random() * 1.5; // half size
+    const size = 1 + Math.random() * 1.5;
     const rotation = Math.random() * Math.PI * 2;
 
-    drawSparkle(ctx, x, y, size, color, rotation);
+    drawSparkle(ctx, x, y, size, color, rotation, intensityOpacity);
   }
 }
