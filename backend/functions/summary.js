@@ -1,17 +1,22 @@
 /* summarize descriptions from web */
 
 import logger from "firebase-functions/logger";
-import { getAi, GeminiModel, admin, onWineRequest, searchCollection } from "./config.js";
+import {
+  getAi,
+  GeminiModel,
+  admin,
+  onWineRequest,
+  searchCollection,
+} from "./config.js";
 import { generateImage } from "./image.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
-
 /**
  * Generate summary with loop of Writer and Reviewer until approved or max iterations reached.
  * Requires the client to send selected descriptions in the request body.
- * No fallback: if no descriptions are provided, no summary is generated. 
-*/
+ * No fallback: if no descriptions are provided, no summary is generated.
+ */
 export const generateSummary = onWineRequest(async (req, res, user) => {
   if (req.method !== "POST") {
     return res.status(405).send("Method not allowed. Use POST.");
@@ -19,38 +24,48 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
 
   const q = req.body?.q;
   const descriptionsFromClient = req.body?.descriptions;
-  const wineInfo = req.body?.wineInfo;                    // complete wine data from frontend
+  const wineInfo = req.body?.wineInfo; // complete wine data from frontend
 
   if (!q) {
     logger.info("Missing q in generateSummary", { q });
     return res.status(400).send("Query missing");
   }
 
-  if (!Array.isArray(descriptionsFromClient) || descriptionsFromClient.length === 0) {
+  if (
+    !Array.isArray(descriptionsFromClient) ||
+    descriptionsFromClient.length === 0
+  ) {
     logger.info("No descriptions provided for generateSummary", {
       descriptions: descriptionsFromClient,
     });
-    return res.status(400).send(
-      "At least one description must be provided to generate a summary."
-    );
+    return res
+      .status(400)
+      .send("At least one description must be provided to generate a summary.");
   }
 
-  const descriptionTexts = descriptionsFromClient.map((d) => {
-    if (!d) return "";
-    if (typeof d.articleText === "string" && d.articleText.trim().length > 0) {
-      return d.articleText.trim();
-    }
-    console.log("description", JSON.stringify(d));
-    if (typeof d.snippet === "string" && d.snippet.trim().length > 0) {
-      return d.snippet.trim();
-    }
-    return "";
-  }).filter((t) => t.length > 0);
+  const descriptionTexts = descriptionsFromClient
+    .map((d) => {
+      if (!d) return "";
+      if (
+        typeof d.articleText === "string" &&
+        d.articleText.trim().length > 0
+      ) {
+        return d.articleText.trim();
+      }
+      console.log("description", JSON.stringify(d));
+      if (typeof d.snippet === "string" && d.snippet.trim().length > 0) {
+        return d.snippet.trim();
+      }
+      return "";
+    })
+    .filter((t) => t.length > 0);
 
-  console.log("descriptions", JSON.stringify(descriptionTexts))
+  console.log("descriptions", JSON.stringify(descriptionTexts));
   if (descriptionTexts.length === 0) {
     logger.info("All provided descriptions were empty", { q });
-    return res.status(400).send("Provided descriptions do not contain usable text.");
+    return res
+      .status(400)
+      .send("Provided descriptions do not contain usable text.");
   }
 
   let result;
@@ -70,17 +85,33 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   console.log("Depth:", result.depth);
   console.log("Body:", result.body);
   console.log("Fruit Notes:", JSON.stringify(result.fruitNotes, null, 2));
-  console.log("Non-Fruit Notes:", JSON.stringify(result.nonFruitNotes, null, 2));
+  console.log(
+    "Non-Fruit Notes:",
+    JSON.stringify(result.nonFruitNotes, null, 2),
+  );
   console.log("Barrel Material:", result.barrelMaterial);
   console.log("Barrel Intensity:", result.barrelIntensity);
   console.log("Minerality Material:", result.mineralityMaterial);
   console.log("Minerality Intensity:", result.mineralityIntensity);
   console.log("Minerality Placement:", result.mineralityPlacement);
+  console.log("Spritz:", result.spritz);
   console.log("=================================");
 
   // generate image based on wine data
   let imageBase64 = null;
-  const image = await generateImage(result);
+  const image = await generateImage({
+    wineType: result.wineType,
+    baseColor: result.baseColor,
+    acidity: result.acidity,
+    residualSugar: result.residualSugar / 100,
+    depth: result.depth,
+    body: result.body,
+    fruitNotes: result.fruitNotes,
+    nonFruitNotes: result.nonFruitNotes,
+    barrelMaterial: result.barrelMaterial,
+    barrelIntensity: result.barrelIntensity,
+    spritz: result.spritz,
+  });
   imageBase64 = image.toString("base64");
   result.image = imageBase64;
 
@@ -93,7 +124,9 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   let foodPairingText = "";
 
   if (summary.includes("Nose:") || summary.includes("Nase:")) {
-    const parts = summary.split(/(?=Palate:|Mundgefühl:|Finish:|Abgang:|Vinification:|Vinifikation:|Food Pairing:|Speiseempfehlung:)/);
+    const parts = summary.split(
+      /(?=Palate:|Mundgefühl:|Finish:|Abgang:|Vinification:|Vinifikation:|Food Pairing:|Speiseempfehlung:)/,
+    );
     if (parts.length >= 1) {
       noseText = parts[0].replace(/^(Nose:|Nase:)\s*/, "").trim();
     }
@@ -104,10 +137,14 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
       finishText = parts[2].replace(/^(Finish:|Abgang:)\s*/, "").trim();
     }
     if (parts.length >= 4) {
-      vinificationText = parts[3].replace(/^(Vinification:|Vinifikation:)\s*/, "").trim();
+      vinificationText = parts[3]
+        .replace(/^(Vinification:|Vinifikation:)\s*/, "")
+        .trim();
     }
     if (parts.length >= 5) {
-      foodPairingText = parts[4].replace(/^(Food Pairing:|Speiseempfehlung:)\s*/, "").trim();
+      foodPairingText = parts[4]
+        .replace(/^(Food Pairing:|Speiseempfehlung:)\s*/, "")
+        .trim();
     }
   }
 
@@ -115,7 +152,9 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   if (wineInfo) {
     const uid = user.uid;
     const wineName = wineInfo.name || "No Name";
-    const descriptions = Array.isArray(wineInfo.descriptions) ? wineInfo.descriptions : [];
+    const descriptions = Array.isArray(wineInfo.descriptions)
+      ? wineInfo.descriptions
+      : [];
 
     await searchCollection.add({
       uid: uid,
@@ -127,7 +166,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
       nose: noseText,
       palate: palateText,
       finish: finishText,
-      alcohol: wineInfo.alcohol || 0.0, 
+      alcohol: wineInfo.alcohol || 0.0,
       restzucker: result.residualSugar || null,
       saure: wineInfo.saure || null,
       fromImported: wineInfo.fromImported || null,
@@ -148,10 +187,9 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     vinification: vinificationText,
     foodPairing: foodPairingText,
   };
-  
+
   return res.status(200).send(JSON.stringify(response));
 });
-
 
 /**
  * Operate the agentic writer/reviewer loop. Each iteration asks the reviewer to review the writer's output.
@@ -177,7 +215,9 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
   } while (!review.approved && iteration < MaxIterationCount);
 
   const end = new Date();
-  logger.info(`Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`);
+  logger.info(
+    `Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`,
+  );
 
   // Return all visualization data
   return {
@@ -195,20 +235,20 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
     mineralityMaterial: obj.mineralityMaterial,
     mineralityIntensity: obj.mineralityIntensity,
     mineralityPlacement: obj.mineralityPlacement,
-    approved: review.approved
+    spritz: obj.spritz,
+    approved: review.approved,
   };
 }
 
-
 // Wine type enum - determines base color of visualization
 const WineTypes = [
-  "red",        // deep red wines
-  "white",      // white/yellow wines
-  "rose",       // pink wines
-  "orange",     // orange/amber wines (skin-contact whites)
-  "sparkling",  // champagne, prosecco, etc.
-  "dessert",    // sweet dessert wines (sauternes, tokaji)
-  "fortified",  // port, sherry, madeira
+  "red", // deep red wines
+  "white", // white/yellow wines
+  "rose", // pink wines
+  "orange", // orange/amber wines (skin-contact whites)
+  "sparkling", // champagne, prosecco, etc.
+  "dessert", // sweet dessert wines (sauternes, tokaji)
+  "fortified", // port, sherry, madeira
 ];
 
 // HSV color schema for tasting notes
@@ -222,24 +262,85 @@ const HSVColorZod = z.object({
 const TastingNoteZod = z.object({
   name: z.string().describe("Name of the flavor/aroma note"),
   color: HSVColorZod.describe("HSV color representing this note"),
-  intensity: z.number().min(0).max(1).describe("How prominent/intense this note is (0=subtle hint, 1=dominant)"),
+  intensity: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe("How prominent/intense this note is (0=subtle hint, 1=dominant)"),
 });
 
 const WriterModelZod = z.object({
   summary: z.string(),
   wineType: z.enum(WineTypes).describe("Type of wine"),
-  baseColor: HSVColorZod.describe("Base wine color in HSV, adjusted from predefined colors based on wine description"),
-  acidity: z.number().min(0).max(1).describe("Perceived acidity level (0=flat, 1=very high)"),
-  residualSugar: z.number().min(0).max(100).describe("Sweetness level (0=bone dry, 100=very sweet)"),
-  depth: z.number().min(0).max(1).describe("Depth/complexity/persistence (0=simple/light, 1=deep/complex)"),
-  body: z.number().min(0).max(1).describe("Body/structure/texture (0=light/delicate, 1=full/opulent)"),
-  fruitNotes: z.array(TastingNoteZod).max(5).describe("Fruit-based flavor/aroma notes with colors"),
-  nonFruitNotes: z.array(TastingNoteZod).max(5).describe("Non-fruit flavor/aroma notes (earth, oak, mineral, etc.) with colors"),
-  barrelMaterial: z.enum(["oak", "stainless", "none"]).describe("Barrel material: oak (Holzfass/Barrique), stainless (Edelstahlfass), or none (kein Ausbau erwähnt)"),
-  barrelIntensity: z.number().min(0).max(1).describe("Intensity of barrel influence (0=no influence, 1=strong influence from oak/stainless steel barrel)"),
-  mineralityMaterial: z.enum(["chalk", "steel", "stone", "slate", "forest", "compost", "fungi"]).describe("Minerality: chalk (Kreide), steel (Stahl), stone (Stein), slate (Schiefer), forest (Waldboden), compost (Kompost), fungi (Pilze)"),
-  mineralityPlacement: z.number().min(0).max(1).describe("Placement of minerality (0=middle, 1=edges)"),
-  mineralityIntensity: z.number().min(0).max(1).describe("Intensity of minerality influence (0=no influence, 1=strong influence from minerality)"),
+  baseColor: HSVColorZod.describe(
+    "Base wine color in HSV, adjusted from predefined colors based on wine description",
+  ),
+  acidity: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe("Perceived acidity level (0=flat, 1=very high)"),
+  residualSugar: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe("Sweetness level (0=bone dry, 100=very sweet)"),
+  depth: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe("Depth/complexity/persistence (0=simple/light, 1=deep/complex)"),
+  body: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe("Body/structure/texture (0=light/delicate, 1=full/opulent)"),
+  fruitNotes: z
+    .array(TastingNoteZod)
+    .max(5)
+    .describe("Fruit-based flavor/aroma notes with colors"),
+  nonFruitNotes: z
+    .array(TastingNoteZod)
+    .max(5)
+    .describe(
+      "Non-fruit flavor/aroma notes (earth, oak, mineral, etc.) with colors",
+    ),
+  barrelMaterial: z
+    .enum(["oak", "stainless", "none"])
+    .describe(
+      "Barrel material: oak (Holzfass/Barrique), stainless (Edelstahlfass), or none (kein Ausbau erwähnt)",
+    ),
+  barrelIntensity: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe(
+      "Intensity of barrel influence (0=no influence, 1=strong influence from oak/stainless steel barrel)",
+    ),
+  mineralityMaterial: z
+    .enum(["chalk", "steel", "stone", "slate", "forest", "compost", "fungi"])
+    .describe(
+      "Minerality: chalk (Kreide), steel (Stahl), stone (Stein), slate (Schiefer), forest (Waldboden), compost (Kompost), fungi (Pilze)",
+    ),
+  mineralityPlacement: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe("Placement of minerality (0=middle, 1=edges)"),
+  mineralityIntensity: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe(
+      "Intensity of minerality influence (0=no influence, 1=strong influence from minerality)",
+    ),
+  spritz: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe(
+      "Effervescence/carbonation level (0=still wine, 0.2=perlend/lightly sparkling, 0.5=spritzig/sparkling, 1=highly effervescent like Champagne)",
+    ),
 });
 const WriterModelSchema = zodToJsonSchema(WriterModelZod);
 
@@ -248,13 +349,15 @@ export { WineTypes };
 
 /** Writer-AI Agent: generate a summary of descriptions and colors, optionally taking feedback from the Reviewer Agent. */
 async function runWriterModel(descriptions, feedback, prevObj) {
-  const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
+  const sourcesText = descriptions
+    .map((d, i) => `Quelle ${i + 1}:\n${d}`)
+    .join("\n\n");
   const prompt = `
 Du bist ein Wein- und Farbassoziationsexperte und Profi darin, gute, akkurate Weinbeschreibungen zu erstellen.
 
 Hier sind mehrere Beschreibungen eines Weins aus dem Internet:${sourcesText}
-${prevObj? `Hier ist der vorheriger Draft der erstellten Zusammenfassung und Farbassoziationen dieser Weine:\n${JSON.stringify(prevObj)}\n` : ""}
-${feedback? `Hier hast du Feedback von einer Qualitätskontrolle-KI, das du zur Verbesserung des vorherigen Drafts nutzen sollst:\n${feedback}\n` : ""}
+${prevObj ? `Hier ist der vorheriger Draft der erstellten Zusammenfassung und Farbassoziationen dieser Weine:\n${JSON.stringify(prevObj)}\n` : ""}
+${feedback ? `Hier hast du Feedback von einer Qualitätskontrolle-KI, das du zur Verbesserung des vorherigen Drafts nutzen sollst:\n${feedback}\n` : ""}
 
 Deine Aufgabe ist es, eine einheitliche, konsistente Zusammenfassung der bereitgestellten Weinbeschreibungen zu erstellen.
 Zusätzlich musst du Farbassoziationen im HSV-Format für die Geschmacksnoten erstellen.
@@ -413,20 +516,36 @@ Die Platzierung (mineralityPlacement: 0-1) bestimmt, worauf die Mineralität am 
 - 0.3-0.7: Gaumen - Einfluss auf Gaumen (Mitte)
 - 0.7-1.0: Nase - Einfluss auf Nase (Aussen)
 
+## Spritzigkeit (spritz) - Skala 0 bis 1
+Bewerte die Kohlensäure/Perlage des Weins:
+- 0.0-0.2: Still - keine oder kaum wahrnehmbare Kohlensäure (Stillweine)
+- 0.2-0.45: Perlend - leichte Perlage (Perlwein, Frizzante, Vinho Verde)
+- 0.45-0.75: Spritzig - deutliche Kohlensäure (Prosecco, Sekt, Cava)
+- 0.75-1.0: Stark spritzig - intensive Perlage (Champagner, Crémant, hochwertige Schaumweine)
+
+Begriffe die für hohe Spritzigkeit sprechen:
+- "Schaumwein", "Sekt", "Champagner", "Crémant", "Cava", "Prosecco"
+- "perlend", "moussierend", "spritzig", "prickelnd"
+- "feine Perlage", "elegante Bläschen", "mousse"
+- wineType="sparkling" → mindestens 0.5
+
+Begriffe die für niedrige/keine Spritzigkeit sprechen:
+- "Stillwein", "still", "ohne Kohlensäure"
+- Alle normalen Rot-, Weiß-, Rosé-Weine ohne besondere Erwähnung von Perlage
+
 Deine Ausgabe MUSS dem JSON-Schema entsprechen.`;
-  const ai = await getAi()
+  const ai = await getAi();
   const response = await ai.models.generateContent({
     model: GeminiModel,
     contents: [{ text: prompt }],
     config: {
       responseMimeType: "application/json",
-      responseJsonSchema: WriterModelSchema
-    }
+      responseJsonSchema: WriterModelSchema,
+    },
   });
 
   return WriterModelZod.parse(JSON.parse(response.text));
 }
-
 
 const ReviewerModelZod = z.object({
   approved: z.boolean(),
@@ -436,7 +555,9 @@ const ReviewerModelSchema = zodToJsonSchema(ReviewerModelZod);
 
 /** Reviewer-AI Agent: review a summary and colors and provide feedback. */
 async function runReviewerModel(descriptions, obj) {
-  const sourcesText = descriptions.map((d, i) => `Quelle ${i + 1}:\n${d}`).join("\n\n");
+  const sourcesText = descriptions
+    .map((d, i) => `Quelle ${i + 1}:\n${d}`)
+    .join("\n\n");
   const prompt = `
 Du bist eine unabhängige Qualitätskontrolle-KI für Weinzusammenfassungen und Farbassoziationen.
 
@@ -486,18 +607,24 @@ Prüfe folgende Punkte:
 - Wurde die Mineralik korrekt erkannt?
 - Passt die Platzierung zur Beschreibung? (0=in der Mitte, 1=am Rand)
 
+## Spritzigkeit (spritz: 0-1)
+- Passt der Wert zur Beschreibung?
+- 0.0-0.2: still | 0.2-0.45: perlend | 0.45-0.75: spritzig | 0.75-1.0: stark spritzig
+- Schaumweine (Champagner, Sekt, Prosecco) → mindestens 0.5
+- Stillweine ohne Erwähnung von Perlage → 0.0-0.1
+
 WICHTIG:
 - Sei nicht zu streng bei kleinen Abweichungen
 - Lehne nur ab, wenn etwas grob falsch ist
 - Deine Ausgabe MUSS dem JSON-Schema entsprechen.`;
-  const ai = await getAi()
+  const ai = await getAi();
   const response = await ai.models.generateContent({
     model: GeminiModel,
     contents: [{ text: prompt }],
     config: {
       responseMimeType: "application/json",
-      responseJsonSchema: ReviewerModelSchema
-    }
+      responseJsonSchema: ReviewerModelSchema,
+    },
   });
 
   return ReviewerModelZod.parse(JSON.parse(response.text));

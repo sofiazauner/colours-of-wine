@@ -11,6 +11,7 @@ import {
   applyBody,
   applySugar,
   applyBarrel,
+  applyBubbles,
   applyMinerality,
 } from "./renderEffects/index.js";
 
@@ -46,6 +47,7 @@ export async function generateImage(data) {
     residualSugar,
     depth,
     body,
+    spritz,
     fruitNotes,
     nonFruitNotes,
     barrelMaterial,
@@ -67,7 +69,8 @@ export async function generateImage(data) {
   const ctx = canvas.getContext("2d");
 
   // Get base color - use Gemini's color if provided, otherwise fall back to predefined
-  const baseColor = geminiBaseColor || WineTypeBaseColors[wineType] || WineTypeBaseColors.red;
+  const baseColor =
+    geminiBaseColor || WineTypeBaseColors[wineType] || WineTypeBaseColors.red;
 
   // Fill background with very light tint of base color
   ctx.fillStyle = hsvToHex(baseColor.h, baseColor.s * 0.08, 0.98);
@@ -79,7 +82,15 @@ export async function generateImage(data) {
   applyBase(ctx, centerX, centerY, maxRadius, baseColor);
 
   // 2. Tasting note overlays
-  applyNotes(ctx, centerX, centerY, maxRadius, coreRadius, fruitNotes, nonFruitNotes);
+  applyNotes(
+    ctx,
+    centerX,
+    centerY,
+    maxRadius,
+    coreRadius,
+    fruitNotes,
+    nonFruitNotes,
+  );
 
   // 3. Body/structure (saturation boost + swirling movement)
   applyBody(ctx, centerX, centerY, maxRadius, width, height, baseColor, body);
@@ -88,17 +99,54 @@ export async function generateImage(data) {
   const { acidityIntensity, depthIntensity } = getEffectIntensities(wineType);
   const coreRadiusInner = coreRadius * 0.8;
 
-  applyAcidity(ctx, centerX, centerY, coreRadiusInner, baseColor, acidity, acidityIntensity);
+  applyAcidity(
+    ctx,
+    centerX,
+    centerY,
+    coreRadiusInner,
+    baseColor,
+    acidity,
+    acidityIntensity,
+  );
   applyDepth(ctx, centerX, centerY, coreRadius, depth, depthIntensity);
 
   // 5. Sugar indicator (pink glow at bottom)
-  applySugar(ctx, centerX, centerY, maxRadius, width, height, residualSugar / 100);
+  applySugar(
+    ctx,
+    centerX,
+    centerY,
+    maxRadius,
+    width,
+    height,
+    residualSugar / 100,
+  );
 
   // 6. Barrel material vignette (oak = brown, stainless = blue-gray)
-  applyBarrel(ctx, centerX, centerY, width, height, barrelMaterial, barrelIntensity);
+  applyBarrel(
+    ctx,
+    centerX,
+    centerY,
+    width,
+    height,
+    barrelMaterial,
+    barrelIntensity,
+  );
 
   // 7. Minerality
-  applyMinerality(ctx, centerX, centerY, maxRadius, width, height, mineralityMaterial, mineralityPlacement, mineralityIntensity);
+  applyMinerality(
+    ctx,
+    centerX,
+    centerY,
+    maxRadius,
+    width,
+    height,
+    mineralityMaterial,
+    mineralityPlacement,
+    mineralityIntensity,
+  );
+
+  // 8. Bubbles/effervescence (spritz)
+  applyBubbles(ctx, centerX, centerY, maxRadius, width, height, spritz, 1.0);
 
   return canvas.toBuffer("image/png");
 }

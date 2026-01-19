@@ -12,6 +12,8 @@ import { applySugar } from "./applySugar.js";
 import { applyBody } from "./applyBody.js";
 import { applyBarrel } from "./applyBarrel.js";
 import { applyBubbles } from "./applyBubbles.js";
+import { applyMinerality } from "./applyMinerality.js";
+import { applySugarBar } from "./applySugarBar.js";
 
 // Test data
 const testData = {
@@ -31,6 +33,11 @@ const testData = {
   ],
   barrelMaterial: "oak",
   barrelIntensity: 0.5,
+  mineralityMaterial: "slate",
+  mineralityPlacement: 0.7,
+  mineralityIntensity: 0.6,
+  residualSugarValue: 25,
+  residualSugarKnown: true,
 };
 
 // Canvas setup
@@ -107,6 +114,23 @@ const effects = {
     saveCanvas(canvas, "bubbles");
   },
 
+  "bubbles-range": () => {
+    // Test all 4 spritz categories: still, perlend, spritzig, stark_spritzig
+    const spritzLevels = [
+      { value: 0.1, name: "still" },
+      { value: 0.35, name: "perlend" },
+      { value: 0.6, name: "spritzig" },
+      { value: 0.9, name: "stark_spritzig" },
+    ];
+    spritzLevels.forEach(({ value, name }) => {
+      const { canvas, ctx } = createTestCanvas();
+      applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+      applyBody(ctx, centerX, centerY, maxRadius, width, height, testData.baseColor, testData.body);
+      applyBubbles(ctx, centerX, centerY, maxRadius, width, height, value, 1.0);
+      saveCanvas(canvas, `bubbles_${name}_${value}`);
+    });
+  },
+
   "body-range": () => {
     // Test all 4 structure categories: leicht, mittel, voll, opulent
     const bodyLevels = [
@@ -150,6 +174,43 @@ const effects = {
     });
   },
 
+  minerality: () => {
+    const { canvas, ctx } = createTestCanvas();
+    applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+    applyMinerality(ctx, centerX, centerY, maxRadius, width, height,
+      testData.mineralityMaterial, testData.mineralityPlacement, testData.mineralityIntensity);
+    saveCanvas(canvas, "minerality");
+  },
+
+  "minerality-materials": () => {
+    // Test all minerality materials
+    const materials = ["chalk", "steel", "stone", "slate", "forest", "compost", "fungi"];
+    materials.forEach((material) => {
+      const { canvas, ctx } = createTestCanvas();
+      applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+      applyMinerality(ctx, centerX, centerY, maxRadius, width, height, material, 0.7, 0.8);
+      saveCanvas(canvas, `minerality_${material}`);
+    });
+  },
+
+  "sugar-bar": () => {
+    const { canvas, ctx } = createTestCanvas();
+    applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+    applySugarBar(ctx, width, height, testData.residualSugarValue, testData.residualSugarKnown);
+    saveCanvas(canvas, "sugar_bar");
+  },
+
+  "sugar-bar-range": () => {
+    // Test different sugar levels (max 500)
+    const levels = [0, 5, 15, 30, 50, 100, 150, 250, 500];
+    levels.forEach((level) => {
+      const { canvas, ctx } = createTestCanvas();
+      applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
+      applySugarBar(ctx, width, height, level, true);
+      saveCanvas(canvas, `sugar_bar_${level}`);
+    });
+  },
+
   all: () => {
     const { canvas, ctx } = createTestCanvas();
     applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
@@ -160,6 +221,9 @@ const effects = {
     applySugar(ctx, centerX, centerY, maxRadius, width, height, testData.residualSugar);
     applyBubbles(ctx, centerX, centerY, maxRadius, width, height, testData.spritz, 1.0);
     applyBarrel(ctx, centerX, centerY, width, height, testData.barrelMaterial, testData.barrelIntensity);
+    applyMinerality(ctx, centerX, centerY, maxRadius, width, height,
+      testData.mineralityMaterial, testData.mineralityPlacement, testData.mineralityIntensity);
+    applySugarBar(ctx, width, height, testData.residualSugarValue, testData.residualSugarKnown);
     saveCanvas(canvas, "all");
   },
 };
@@ -180,7 +244,12 @@ if (!arg || arg === "help" || arg === "--help") {
   console.log("  barrel            - Barrel material vignette (default test is for oak barrel with medium intensity)");
   console.log("  barrel-oak        - Oak barrel at different intensities");
   console.log("  barrel-stainless  - Stainless steel barrel at different intensities");
-  console.log("  bubbles  - Effervescence / bubbles (spritz)");
+  console.log("  bubbles           - Effervescence / bubbles (spritz)");
+  console.log("  bubbles-range     - Bubbles at different spritz levels (still, perlend, spritzig, stark_spritzig)");
+  console.log("  minerality        - Minerality dots (default: slate)");
+  console.log("  minerality-materials - All minerality materials (chalk, steel, stone, slate, forest, compost, fungi)");
+  console.log("  sugar-bar         - Residual sugar bar indicator");
+  console.log("  sugar-bar-range   - Sugar bar at different levels (0, 5, 15, 30, 50, 75, 100)");
   console.log("  all               - Full pipeline");
   console.log("");
   console.log("Example: node renderEffects/test.js depth");
