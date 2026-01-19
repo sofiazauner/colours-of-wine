@@ -91,9 +91,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   );
   console.log("Barrel Material:", result.barrelMaterial);
   console.log("Barrel Intensity:", result.barrelIntensity);
-  console.log("Minerality Material:", result.mineralityMaterial);
-  console.log("Minerality Intensity:", result.mineralityIntensity);
-  console.log("Minerality Placement:", result.mineralityPlacement);
+  console.log("Minerality Notes:", JSON.stringify(result.mineralityNotes, null, 2));
   console.log("Spritz:", result.spritz);
   console.log("=================================");
 
@@ -110,6 +108,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     nonFruitNotes: result.nonFruitNotes,
     barrelMaterial: result.barrelMaterial,
     barrelIntensity: result.barrelIntensity,
+    mineralityNotes: result.mineralityNotes,
     spritz: result.spritz,
   });
   imageBase64 = image.toString("base64");
@@ -232,9 +231,7 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
     nonFruitNotes: obj.nonFruitNotes,
     barrelMaterial: obj.barrelMaterial,
     barrelIntensity: obj.barrelIntensity,
-    mineralityMaterial: obj.mineralityMaterial,
-    mineralityIntensity: obj.mineralityIntensity,
-    mineralityPlacement: obj.mineralityPlacement,
+    mineralityNotes: obj.mineralityNotes,
     spritz: obj.spritz,
     approved: review.approved,
   };
@@ -317,23 +314,25 @@ const WriterModelZod = z.object({
     .describe(
       "Intensity of barrel influence (0=no influence, 1=strong influence from oak/stainless steel barrel)",
     ),
-  mineralityMaterial: z
-    .enum(["chalk", "steel", "stone", "slate", "forest", "compost", "fungi"])
-    .describe(
-      "Minerality: chalk (Kreide), steel (Stahl), stone (Stein), slate (Schiefer), forest (Waldboden), compost (Kompost), fungi (Pilze)",
-    ),
-  mineralityPlacement: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe("Placement of minerality (0=middle, 1=edges)"),
-  mineralityIntensity: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe(
-      "Intensity of minerality influence (0=no influence, 1=strong influence from minerality)",
-    ),
+  mineralityNotes: z
+    .array(
+      z.object({
+        name: z.string().describe("Name of the minerality note"),
+        color: HSVColorZod.describe("HSV color representing this minerality"),
+        intensity: z
+          .number()
+          .min(0)
+          .max(1)
+          .describe("How prominent this minerality is (0=subtle, 1=dominant)"),
+        placement: z
+          .number()
+          .min(0)
+          .max(1)
+          .describe("Where the minerality appears (0=finish/inner, 0.5=palate/middle, 1=nose/outer)"),
+      }),
+    )
+    .max(3)
+    .describe("Minerality notes with colors, intensity and placement"),
   spritz: z
     .number()
     .min(0)
@@ -493,28 +492,33 @@ Die Intensität (barrelIntensity: 0-1) bestimmt, wie stark das Fassmaterial den 
 - 0.6-0.8: Stark - prägender Einfluss (z.B. "ausgeprägte Barrique-Noten", "stark von Holz geprägt")
 - 0.8-1.0: Sehr stark - dominanter Einfluss (z.B. "intensive Eichennoten", "langer Barrique-Ausbau")
 
-## Mineralik: Material (mineralityMaterial), Intensität (mineralityIntensity), und Platzierung (mineralityPlacement)
-Wähle eine passende Beschreibung der Mineralik:
-- Kreide (chalk)
-- Stahl (steel)
-- Stein (stone)
-- Schiefer (slate)
-- Waldboden (forest)
-- Kompost (compost)
-- Pilze (fungi)
-- Keine (none) - falls keine Mineralik bestimmt wurde.
+## Mineralik-Noten (mineralityNotes) - maximal 3
+Identifiziere mineralische Eindrücke und gib jedem eine HSV-Farbe, Intensität und Platzierung.
+Mineralität ist ein wichtiger Aspekt vieler Weine - achte besonders auf Begriffe wie "mineralisch", "steinig", "feuersteinig", "kreidige", "schiefrig", etc.
 
-Die Intensität (mineralityIntensity: 0-1) bestimmt, wie stark die Mineralik den Wein beeinflusst.
-- 0.0-0.2: Sehr subtil - kaum wahrnehmbarer Einfluss
-- 0.2-0.4: Leicht - dezenter Einfluss des Ausbaus
-- 0.4-0.6: Mittel - deutlicher Einfluss
-- 0.6-0.8: Stark - prägender Einfluss
-- 0.8-1.0: Sehr stark - dominanter Einfluss
+Beispiele mit HSV-Farben:
+- Kreide/Kalk: { h: 45, s: 0.08, v: 0.95 } - fast weiß, leicht warm
+- Feuerstein/Flint: { h: 35, s: 0.15, v: 0.6 } - grau mit warmem Unterton
+- Schiefer/Slate: { h: 210, s: 0.15, v: 0.5 } - blau-grau
+- Nasser Stein: { h: 220, s: 0.1, v: 0.55 } - kühles Grau
+- Salz/Meer: { h: 190, s: 0.2, v: 0.85 } - helles Blau-Grün
+- Graphit: { h: 0, s: 0.0, v: 0.3 } - dunkelgrau
+- Eisen/Blut: { h: 0, s: 0.4, v: 0.4 } - rostrot
+- Vulkanisch: { h: 15, s: 0.3, v: 0.25 } - dunkles Braun-Rot
+- Erde/Lehm: { h: 25, s: 0.5, v: 0.45 } - erdbraun
+- Pilze/Waldboden: { h: 30, s: 0.35, v: 0.4 } - braun
 
-Die Platzierung (mineralityPlacement: 0-1) bestimmt, worauf die Mineralität am meisten Einfluss hat:
-- 0.0-0.3: Nachhall - Einfluss auf Nachhall (Innen)
-- 0.3-0.7: Gaumen - Einfluss auf Gaumen (Mitte)
-- 0.7-1.0: Nase - Einfluss auf Nase (Aussen)
+Intensität (intensity: 0-1):
+- 0.0-0.3: Dezent - subtiler mineralischer Hauch
+- 0.3-0.6: Mittel - deutlich wahrnehmbar
+- 0.6-1.0: Dominant - prägendes Element
+
+Platzierung (placement: 0-1) - wo die Mineralität am stärksten ist:
+- 0.0-0.3: Nachhall/Finish - zeigt sich im Abgang (innen im Bild)
+- 0.3-0.7: Gaumen - präsent im Mundgefühl (Mitte)
+- 0.7-1.0: Nase - bereits in der Aromatik (außen im Bild)
+
+Falls keine Mineralik erkennbar ist, lasse das Array leer [].
 
 ## Spritzigkeit (spritz) - Skala 0 bis 1
 Bewerte die Kohlensäure/Perlage des Weins:
@@ -603,9 +607,11 @@ Prüfe folgende Punkte:
 - Begriffe wie "Edelstahlfass", "Stahltank", "stainless steel" → stainless
 - Wenn nichts erwähnt → none
 
-## Mineralik: Material (mineralityMaterial) und Platzierung (mineralityPlacement)
-- Wurde die Mineralik korrekt erkannt?
-- Passt die Platzierung zur Beschreibung? (0=in der Mitte, 1=am Rand)
+## Mineralik-Noten (mineralityNotes)
+- Wurden mineralische Eindrücke korrekt erkannt? (Kreide, Schiefer, Feuerstein, etc.)
+- Passen die HSV-Farben zu den mineralischen Noten? (z.B. Schiefer sollte grau-blau sein)
+- Ist die Platzierung sinnvoll? (0=Finish, 0.5=Gaumen, 1=Nase)
+- Maximal 3 Mineralik-Noten
 
 ## Spritzigkeit (spritz: 0-1)
 - Passt der Wert zur Beschreibung?

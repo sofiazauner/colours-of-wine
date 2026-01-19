@@ -33,9 +33,10 @@ const testData = {
   ],
   barrelMaterial: "oak",
   barrelIntensity: 0.5,
-  mineralityMaterial: "slate",
-  mineralityPlacement: 0.7,
-  mineralityIntensity: 0.6,
+  mineralityNotes: [
+    { name: "Schiefer", color: { h: 210, s: 0.15, v: 0.5 }, intensity: 0.6, placement: 0.7 },
+    { name: "Feuerstein", color: { h: 35, s: 0.15, v: 0.6 }, intensity: 0.4, placement: 0.4 },
+  ],
   residualSugarValue: 25,
   residualSugarKnown: true,
 };
@@ -177,19 +178,33 @@ const effects = {
   minerality: () => {
     const { canvas, ctx } = createTestCanvas();
     applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
-    applyMinerality(ctx, centerX, centerY, maxRadius, width, height,
-      testData.mineralityMaterial, testData.mineralityPlacement, testData.mineralityIntensity);
+    const sharePerNote = 1 / testData.mineralityNotes.length;
+    for (const note of testData.mineralityNotes) {
+      applyMinerality(ctx, centerX, centerY, maxRadius, width, height,
+        note.color, note.placement, sharePerNote * note.intensity, note.intensity);
+    }
     saveCanvas(canvas, "minerality");
   },
 
-  "minerality-materials": () => {
-    // Test all minerality materials
-    const materials = ["chalk", "steel", "stone", "slate", "forest", "compost", "fungi"];
-    materials.forEach((material) => {
+  "minerality-colors": () => {
+    // Test different minerality colors with HSV
+    const mineralityTypes = [
+      { name: "chalk", color: { h: 45, s: 0.08, v: 0.95 } },
+      { name: "flint", color: { h: 35, s: 0.15, v: 0.6 } },
+      { name: "slate", color: { h: 210, s: 0.15, v: 0.5 } },
+      { name: "wet_stone", color: { h: 220, s: 0.1, v: 0.55 } },
+      { name: "salt", color: { h: 190, s: 0.2, v: 0.85 } },
+      { name: "graphite", color: { h: 0, s: 0.0, v: 0.3 } },
+      { name: "iron", color: { h: 0, s: 0.4, v: 0.4 } },
+      { name: "volcanic", color: { h: 15, s: 0.3, v: 0.25 } },
+      { name: "earth", color: { h: 25, s: 0.5, v: 0.45 } },
+      { name: "mushroom", color: { h: 30, s: 0.35, v: 0.4 } },
+    ];
+    mineralityTypes.forEach(({ name, color }) => {
       const { canvas, ctx } = createTestCanvas();
       applyBase(ctx, centerX, centerY, maxRadius, testData.baseColor);
-      applyMinerality(ctx, centerX, centerY, maxRadius, width, height, material, 0.7, 0.8);
-      saveCanvas(canvas, `minerality_${material}`);
+      applyMinerality(ctx, centerX, centerY, maxRadius, width, height, color, 0.7, 0.8, 0.8);
+      saveCanvas(canvas, `minerality_${name}`);
     });
   },
 
@@ -221,8 +236,11 @@ const effects = {
     applySugar(ctx, centerX, centerY, maxRadius, width, height, testData.residualSugar);
     applyBubbles(ctx, centerX, centerY, maxRadius, width, height, testData.spritz, 1.0);
     applyBarrel(ctx, centerX, centerY, width, height, testData.barrelMaterial, testData.barrelIntensity);
-    applyMinerality(ctx, centerX, centerY, maxRadius, width, height,
-      testData.mineralityMaterial, testData.mineralityPlacement, testData.mineralityIntensity);
+    const sharePerNote = 1 / testData.mineralityNotes.length;
+    for (const note of testData.mineralityNotes) {
+      applyMinerality(ctx, centerX, centerY, maxRadius, width, height,
+        note.color, note.placement, sharePerNote * note.intensity, note.intensity);
+    }
     applySugarBar(ctx, width, height, testData.residualSugarValue, testData.residualSugarKnown);
     saveCanvas(canvas, "all");
   },
@@ -246,8 +264,8 @@ if (!arg || arg === "help" || arg === "--help") {
   console.log("  barrel-stainless  - Stainless steel barrel at different intensities");
   console.log("  bubbles           - Effervescence / bubbles (spritz)");
   console.log("  bubbles-range     - Bubbles at different spritz levels (still, perlend, spritzig, stark_spritzig)");
-  console.log("  minerality        - Minerality dots (default: slate)");
-  console.log("  minerality-materials - All minerality materials (chalk, steel, stone, slate, forest, compost, fungi)");
+  console.log("  minerality        - Minerality sparkles (uses testData mineralityNotes)");
+  console.log("  minerality-colors - Different minerality colors (chalk, flint, slate, etc.)");
   console.log("  sugar-bar         - Residual sugar bar indicator");
   console.log("  sugar-bar-range   - Sugar bar at different levels (0, 5, 15, 30, 50, 75, 100)");
   console.log("  all               - Full pipeline");
