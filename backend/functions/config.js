@@ -110,7 +110,7 @@ export const WineComponents = [
  * @param {fun} function to execute on a valid request
  */
 export function onWineRequest(fun) {
-  return onRequest(async (req, res) => {
+  return onRequest({cors: true}, async (req, res) => {
     if (req.method === 'OPTIONS') {
       res.set('Access-Control-Allow-Methods', 'GET');
       res.set('Access-Control-Allow-Headers', 'Content-Type');

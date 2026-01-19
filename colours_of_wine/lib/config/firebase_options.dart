@@ -4,6 +4,9 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
+// --dart-define=API_KEY=...
+const apiKey = const String.fromEnvironment('API_KEY');
+
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
 /// Example:
@@ -41,7 +44,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDbpBzg1NO3rC9yKIYkaXaEJjUcJtgyDzk',
+    apiKey: apiKey,
     appId: '1:639837130715:web:5b692ad1e548f46e1621fe',
     messagingSenderId: '639837130715',
     projectId: 'colours-of-wine',
@@ -50,7 +53,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDnRZZDqTSvaankrezM2517LxbSgjd-cO8',
+    apiKey: apiKey,
     appId: '1:639837130715:android:3ea26c0fd16e253b1621fe',
     messagingSenderId: '639837130715',
     projectId: 'colours-of-wine',
@@ -58,7 +61,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDQAnfYMWysqbwP_sSwcoDns0XpE3DRvXQ',
+    apiKey: apiKey,
     appId: '1:639837130715:ios:45500d7ea990c3a41621fe',
     messagingSenderId: '639837130715',
     projectId: 'colours-of-wine',
@@ -67,7 +70,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDQAnfYMWysqbwP_sSwcoDns0XpE3DRvXQ',
+    apiKey: apiKey,
     appId: '1:639837130715:ios:45500d7ea990c3a41621fe',
     messagingSenderId: '639837130715',
     projectId: 'colours-of-wine',
@@ -76,7 +79,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDbpBzg1NO3rC9yKIYkaXaEJjUcJtgyDzk',
+    apiKey: apiKey,
     appId: '1:639837130715:web:d142ca9d442c7e521621fe',
     messagingSenderId: '639837130715',
     projectId: 'colours-of-wine',
