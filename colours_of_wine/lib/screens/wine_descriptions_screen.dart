@@ -219,6 +219,7 @@ class _WineDescriptionsScreenState extends State<WineDescriptionsScreen> {
                     );
                   }
                 } catch (e) {
+                  SnackbarMessages.hide(context);
                   if (mounted) {
                     SnackbarMessages.show(context, '${l10n.summaryGenerationFailed}: $e');
                   }
