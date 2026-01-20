@@ -88,7 +88,8 @@ export const getSerpKey = () => getSecret("SERP_API_KEY");
 // gemini
 export const GeminiModel = "gemini-2.5-flash-lite";
 export const GeminiURL = `https://generativelanguage.googleapis.com/v1beta/models/${GeminiModel}:generateContent`;
-export async function getAi() {
+
+async function getAi() {
   const apiKey = await getGeminiKey();
   return new GoogleGenAI({ apiKey });
 }
@@ -128,4 +129,21 @@ export function onWineRequest(fun) {
     }
     return await fun(req, res, user);
   });
+}
+
+export async function generateContentRetry(obj) {
+  async function asyncSleep(delay) {
+    return new Promise(resolve => setTimeout(resolve, delay));
+  }
+  const ai = await getAi();
+  for (let i = 0; i < 3 /* idk */; i++) {
+    try {
+      return await ai.models.generateContent(obj);
+    } catch (e) {
+      if (e?.status != 503)
+        throw e;
+      logger.info("Got 503 from Gemini, retrying");
+      await asyncSleep(5000);
+    }
+  }
 }

@@ -2,7 +2,7 @@
 
 import logger from "firebase-functions/logger";
 import { parseMultipart, getMultipartBoundary } from "@remix-run/multipart-parser/node";
-import { getAi, GeminiModel, admin, onWineRequest } from "./config.js";
+import { GeminiModel, admin, onWineRequest, generateContentRetry } from "./config.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
@@ -42,8 +42,7 @@ async function labelUserImages(front, back) {
     { inlineData: { mimeType: "image/jpeg", data: front } },
     { inlineData: { mimeType: "image/jpeg", data: back } },
   ];
-  const ai = await getAi()
-  const response = await ai.models.generateContent({
+  const response = await generateContentRetry({
     model: GeminiModel,
     contents: contents,
     config: {

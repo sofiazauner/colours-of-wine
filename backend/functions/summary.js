@@ -2,11 +2,11 @@
 
 import logger from "firebase-functions/logger";
 import {
-  getAi,
   GeminiModel,
   admin,
   onWineRequest,
   searchCollection,
+  generateContentRetry,
 } from "./config.js";
 import { generateImage } from "./image.js";
 import { z } from "zod";
@@ -538,8 +538,7 @@ Begriffe die für niedrige/keine Spritzigkeit sprechen:
 - Alle normalen Rot-, Weiß-, Rosé-Weine ohne besondere Erwähnung von Perlage
 
 Deine Ausgabe MUSS dem JSON-Schema entsprechen.`;
-  const ai = await getAi();
-  const response = await ai.models.generateContent({
+  const response = await generateContentRetry({
     model: GeminiModel,
     contents: [{ text: prompt }],
     config: {
@@ -623,8 +622,7 @@ WICHTIG:
 - Sei nicht zu streng bei kleinen Abweichungen
 - Lehne nur ab, wenn etwas grob falsch ist
 - Deine Ausgabe MUSS dem JSON-Schema entsprechen.`;
-  const ai = await getAi();
-  const response = await ai.models.generateContent({
+  const response = await generateContentRetry({
     model: GeminiModel,
     contents: [{ text: prompt }],
     config: {
