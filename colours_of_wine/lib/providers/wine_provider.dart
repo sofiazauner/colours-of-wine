@@ -343,6 +343,33 @@ class WineProvider extends ChangeNotifier {
       if (updatedWine.category == WineCategory.meineWeine) {
         try {
           await refreshHistory();
+          // ensure the wine after generating the image is still in the list to be visiable immediately in wine details screen
+          // (in case backend hasn't saved it yet or there's a timing issue)
+          final wineAfterRefresh = getWineById(updatedWine.id);
+          if (wineAfterRefresh == null) {
+            // wine not found, add it back
+            _wines.add(updatedWine);
+            // update order
+            final meineWeineList = _wines.where((w) => w.category == WineCategory.meineWeine).toList();
+            for (int i = 0; i < meineWeineList.length; i++) {
+              _wineOrder[meineWeineList[i].id] = i;
+            }
+            notifyListeners();
+          } else {
+            // wine found, but ensure it has the latest updates (summary, image, etc.)
+            // merge the updated wine data with the backend wine
+            final mergedWine = wineAfterRefresh.copyWith(
+              nose: updatedWine.nose.isNotEmpty ? updatedWine.nose : wineAfterRefresh.nose,
+              palate: updatedWine.palate.isNotEmpty ? updatedWine.palate : wineAfterRefresh.palate,
+              finish: updatedWine.finish.isNotEmpty ? updatedWine.finish : wineAfterRefresh.finish,
+              vinification: updatedWine.vinification.isNotEmpty ? updatedWine.vinification : wineAfterRefresh.vinification,
+              foodPairing: updatedWine.foodPairing.isNotEmpty ? updatedWine.foodPairing : wineAfterRefresh.foodPairing,
+              imageUrl: updatedWine.imageUrl ?? wineAfterRefresh.imageUrl,
+            );
+            if (mergedWine != wineAfterRefresh) {
+              updateWine(mergedWine);
+            }
+          }
         } catch (e) {
           debugPrint('Error refreshing history after summary generation: $e');
         }
