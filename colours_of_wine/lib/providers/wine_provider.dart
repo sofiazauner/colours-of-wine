@@ -339,41 +339,40 @@ class WineProvider extends ChangeNotifier {
       );
       updateWine(updatedWine);
  
+    /* two solutions for ID mismatch (Prof Prees Bug):
+        1. no automatic refresh, user has to manually refresh by clicking button (easier + same as imported Wines)
+        2. automatic refresh (automatic, but can lead to problems when two wines have same properties)
+        --> for solution 1 keep the following code section commented out (/*...*/)
+        --> for solution 2 uncomment the following codesection 
+    */
+
       // reload history ("meine Weine") from backend
-      if (updatedWine.category == WineCategory.meineWeine) {
+      /* if (updatedWine.category == WineCategory.meineWeine) {
         try {
-          await refreshHistory();
-          // ensure the wine after generating the image is still in the list to be visiable immediately in wine details screen
-          // (in case backend hasn't saved it yet or there's a timing issue)
-          final wineAfterRefresh = getWineById(updatedWine.id);
-          if (wineAfterRefresh == null) {
-            // wine not found, add it back
-            _wines.add(updatedWine);
-            // update order
-            final meineWeineList = _wines.where((w) => w.category == WineCategory.meineWeine).toList();
-            for (int i = 0; i < meineWeineList.length; i++) {
-              _wineOrder[meineWeineList[i].id] = i;
-            }
+          // await refreshHistory();
+          // backend creates new ID, but navigation uses original ID for detail screen
+          // find wine in db by properties and update its local ID to previous local ID so navigation works
+           final wineIndex = _wines.indexWhere(
+            (w) => w.category == WineCategory.meineWeine &&
+                  w.name == updatedWine.name &&
+                  w.producer == updatedWine.producer &&
+                  w.year == updatedWine.year &&
+                  w.region == updatedWine.region &&
+                  w.country == updatedWine.country,
+          );
+          if (wineIndex != -1 && _wines[wineIndex].id != updatedWine.id) {
+            final backendWine = _wines[wineIndex];
+            final wineWithOriginalId = backendWine.copyWith(id: updatedWine.id);
+            _wines[wineIndex] = wineWithOriginalId;
+            // update order mapping
+            _wineOrder[updatedWine.id] = _wineOrder[backendWine.id] ?? 0;
+            _wineOrder.remove(backendWine.id);
             notifyListeners();
-          } else {
-            // wine found, but ensure it has the latest updates (summary, image, etc.)
-            // merge the updated wine data with the backend wine
-            final mergedWine = wineAfterRefresh.copyWith(
-              nose: updatedWine.nose.isNotEmpty ? updatedWine.nose : wineAfterRefresh.nose,
-              palate: updatedWine.palate.isNotEmpty ? updatedWine.palate : wineAfterRefresh.palate,
-              finish: updatedWine.finish.isNotEmpty ? updatedWine.finish : wineAfterRefresh.finish,
-              vinification: updatedWine.vinification.isNotEmpty ? updatedWine.vinification : wineAfterRefresh.vinification,
-              foodPairing: updatedWine.foodPairing.isNotEmpty ? updatedWine.foodPairing : wineAfterRefresh.foodPairing,
-              imageUrl: updatedWine.imageUrl ?? wineAfterRefresh.imageUrl,
-            );
-            if (mergedWine != wineAfterRefresh) {
-              updateWine(mergedWine);
-            }
           }
         } catch (e) {
           debugPrint('Error refreshing history after summary generation: $e');
         }
-      }
+      } */
       _isLoading = false;
       notifyListeners();
       return result;
