@@ -362,8 +362,9 @@ Deine Aufgabe ist es, eine einheitliche, konsistente Zusammenfassung der bereitg
 Zusätzlich musst du Farbassoziationen im HSV-Format für die Geschmacksnoten erstellen.
 
 WICHTIG:
-- Die Zusammenfassung MUSS die Sektionen: "Nose:" (Aromatik), "Palate:" (Geschmack/Mundgefühl), "Finish:" (Abgang), "Vinification:" (Vinifikation/Ausbau) und "Food Pairing:" (Speiseempfehlungen) enthalten. Falls keine Info vorhanden, schreibe "N/A".
+- Die Zusammenfassung MUSS die Sektionen: "Nase:" (Aromatik), "Palate:" (Geschmack/Mundgefühl), "Finish:" (Abgang), "Vinifikation:" (Vinifikation/Ausbau) und "Speiseempfehlung:" enthalten. Falls keine Info vorhanden, schreibe "N/A".
 - Nutze die bereitgestellten Quellen als einzige Informationsquelle. Erfinde keine Fakten.
+- Die Zusammenfassung MUSS auf Deutsch sein.
 
 ## Weintyp (wineType)
 Wähle den passenden Typ: "red", "white", "rose", "orange", "sparkling", "dessert", "fortified"
@@ -572,9 +573,10 @@ ${JSON.stringify(obj, null, 2)}
 Prüfe folgende Punkte:
 
 ## Zusammenfassung
-- Enthält die Sektionen "Nose:", "Palate:", "Finish:", "Vinification:", "Food Pairing:"
-- Spiegelt die Kernaussagen der Quellen korrekt wider
-- Keine erfundenen Fakten
+- Enthält die Sektionen "Nase:", "Mundgefühl:", "Abgang:", "Vinification:", "Food Pairing:".
+- Spiegelt die Kernaussagen der Quellen korrekt wider.
+- Keine erfundenen Fakten.
+- Der Text ist auf Deutsch, nicht auf Englisch.
 
 ## Weintyp (wineType)
 - Stimmt der Typ mit den Quellen überein? (red/white/rose/orange/sparkling/dessert/fortified)
