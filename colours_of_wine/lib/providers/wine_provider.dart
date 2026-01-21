@@ -338,41 +338,6 @@ class WineProvider extends ChangeNotifier {
         fromImported: fromImportedValue,
       );
       updateWine(updatedWine);
- 
-    /* two solutions for ID mismatch (Prof Prees Bug):
-        1. no automatic refresh, user has to manually refresh by clicking button (easier + same as imported Wines)
-        2. automatic refresh (automatic, but can lead to problems when two wines have same properties)
-        --> for solution 1 keep the following code section commented out (/*...*/)
-        --> for solution 2 uncomment the following codesection 
-    */
-
-      // reload history ("meine Weine") from backend
-      /* if (updatedWine.category == WineCategory.meineWeine) {
-        try {
-          // await refreshHistory();
-          // backend creates new ID, but navigation uses original ID for detail screen
-          // find wine in db by properties and update its local ID to previous local ID so navigation works
-           final wineIndex = _wines.indexWhere(
-            (w) => w.category == WineCategory.meineWeine &&
-                  w.name == updatedWine.name &&
-                  w.producer == updatedWine.producer &&
-                  w.year == updatedWine.year &&
-                  w.region == updatedWine.region &&
-                  w.country == updatedWine.country,
-          );
-          if (wineIndex != -1 && _wines[wineIndex].id != updatedWine.id) {
-            final backendWine = _wines[wineIndex];
-            final wineWithOriginalId = backendWine.copyWith(id: updatedWine.id);
-            _wines[wineIndex] = wineWithOriginalId;
-            // update order mapping
-            _wineOrder[updatedWine.id] = _wineOrder[backendWine.id] ?? 0;
-            _wineOrder.remove(backendWine.id);
-            notifyListeners();
-          }
-        } catch (e) {
-          debugPrint('Error refreshing history after summary generation: $e');
-        }
-      } */
       _isLoading = false;
       notifyListeners();
       return result;
