@@ -60,7 +60,6 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     })
     .filter((t) => t.length > 0);
 
-  console.log("descriptions", JSON.stringify(descriptionTexts));
   if (descriptionTexts.length === 0) {
     logger.info("All provided descriptions were empty", { q });
     return res
@@ -114,38 +113,13 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
   imageBase64 = image.toString("base64");
   result.image = imageBase64;
 
-  // parse summary to extract structured sections (nose etc.)
-  const summary = result.summary || "";
-  let noseText = "";
-  let palateText = "";
-  let finishText = "";
-  let vinificationText = "";
-  let foodPairingText = "";
-
-  if (summary.includes("Nose:") || summary.includes("Nase:")) {
-    const parts = summary.split(
-      /(?=Palate:|Mundgefühl:|Finish:|Abgang:|Vinification:|Vinifikation:|Food Pairing:|Speiseempfehlung:)/,
-    );
-    if (parts.length >= 1) {
-      noseText = parts[0].replace(/^(Nose:|Nase:)\s*/, "").trim();
-    }
-    if (parts.length >= 2) {
-      palateText = parts[1].replace(/^(Palate:|Mundgefühl:)\s*/, "").trim();
-    }
-    if (parts.length >= 3) {
-      finishText = parts[2].replace(/^(Finish:|Abgang:)\s*/, "").trim();
-    }
-    if (parts.length >= 4) {
-      vinificationText = parts[3]
-        .replace(/^(Vinification:|Vinifikation:)\s*/, "")
-        .trim();
-    }
-    if (parts.length >= 5) {
-      foodPairingText = parts[4]
-        .replace(/^(Food Pairing:|Speiseempfehlung:)\s*/, "")
-        .trim();
-    }
-  }
+  /*
+   * Adjust summary structure. (We could generate it like this in the first
+   * place, but that might confuse the LLM.)
+   */
+  for (const it of ["nose", "palate", "finish", "vinification", "foodPairing"])
+    result[it] = result.summary[it];
+  delete result.summary;
 
   // save complete wine data to database
   if (wineInfo) {
@@ -162,32 +136,22 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
       producer: wineInfo.producer || "",
       region: wineInfo.region || "",
       country: wineInfo.country || "",
-      nose: noseText,
-      palate: palateText,
-      finish: finishText,
+      nose: result.nose,
+      palate: result.palate,
+      finish: result.finish,
+      foodPairing: result.foodPairing,
       alcohol: wineInfo.alcohol || 0.0,
       restzucker: result.residualSugar || null,
       saure: wineInfo.saure || null,
       fromImported: wineInfo.fromImported || null,
-      vinification: vinificationText,
-      foodPairing: foodPairingText,
+      vinification: result.vinification,
       imageUrl: imageBase64 ? `data:image/png;base64,${imageBase64}` : null,
       descriptions: descriptions,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
 
-  // return parsed sections along with summary for frontend convenience
-  const response = {
-    ...result,
-    nose: noseText,
-    palate: palateText,
-    finish: finishText,
-    vinification: vinificationText,
-    foodPairing: foodPairingText,
-  };
-
-  return res.status(200).send(JSON.stringify(response));
+  return res.status(200).send(JSON.stringify(result));
 });
 
 /**
@@ -251,7 +215,13 @@ const TastingNoteZod = z.object({
 });
 
 const WriterModelZod = z.object({
-  summary: z.string(),
+  summary: z.object({
+    nose: z.string().describe("Nase (Aromatik)"),
+    palate: z.string().describe("Gaumen (Geschmack/Mundgefühl)"),
+    finish: z.string().describe("Finish (Abgang)"),
+    vinification: z.string().describe("Vinifikation (Vinifikation/Ausbau)"),
+    foodPairing: z.string().describe("Speiseempfehlung"),
+  }),
   wineType: z.enum(WineTypes).describe("Type of wine"),
   baseColor: HSVColorZod.describe(
     "Base wine color in HSV, adjusted from predefined colors based on wine description",
@@ -346,7 +316,7 @@ Deine Aufgabe ist es, eine einheitliche, konsistente Zusammenfassung der bereitg
 Zusätzlich musst du Farbassoziationen im HSV-Format für die Geschmacksnoten erstellen.
 
 WICHTIG:
-- Die Zusammenfassung MUSS die Sektionen: "Nase:" (Aromatik), "Palate:" (Geschmack/Mundgefühl), "Finish:" (Abgang), "Vinifikation:" (Vinifikation/Ausbau) und "Speiseempfehlung:" enthalten. Falls keine Info vorhanden, schreibe "N/A".
+- Der Zusammenfassung besteht aus folgenden Feldern: "nose" (Nase/Aromatik), "palate" (Geschmack/Mundgefühl), "finish" (Abgang), "vinification" (Vinifikation/Ausbau) und "foodPairing" (Speiseempfehlung). Falls keine Info für ein Feld vorhanden, schreibe "N/A".
 - Nutze die bereitgestellten Quellen als einzige Informationsquelle. Erfinde keine Fakten.
 - Die Zusammenfassung MUSS auf Deutsch sein.
 
@@ -557,7 +527,6 @@ ${JSON.stringify(obj, null, 2)}
 Prüfe folgende Punkte:
 
 ## Zusammenfassung
-- Enthält die Sektionen "Nase:", "Mundgefühl:", "Abgang:", "Vinification:", "Food Pairing:".
 - Spiegelt die Kernaussagen der Quellen korrekt wider.
 - Keine erfundenen Fakten.
 - Der Text ist auf Deutsch, nicht auf Englisch.
