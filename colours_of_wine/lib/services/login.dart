@@ -76,46 +76,57 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // UI (Google Sign-In)
+  // UI (Google Sign-In + Email/Password)
   Widget _buildLoginView() {
-   return Column(
-     mainAxisAlignment: MainAxisAlignment.center,
-     children: [
-      const Text(
-        'Colours of Wine',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          'Colours of Wine',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
         ),
-      ),
-      const Text(
-        'A new way to experience Wine',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 17,
-          color: Colors.grey,
+        const Text(
+          'A new way to experience Wine',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 17,
+            color: Colors.grey,
+          ),
         ),
-      ),
-      const SizedBox(height: 12),
-       Image.asset('assets/logo.png',
-         height: 300,
-         fit: BoxFit.contain,
-       ),
-       const SizedBox(height: 15),
-       ElevatedButton.icon(
-         icon: const Icon(Icons.login),
-         label: const Text(AppConstants.signInButton),
-         onPressed: _signInWithGoogle,
-         style: ElevatedButton.styleFrom(
-           backgroundColor: AppConstants.signInButtonColor,
-           foregroundColor: AppConstants.signInButtonTextColor,
-         ),
-       ),
-     ],
-   );
-}
+        const SizedBox(height: 12),
+        Image.asset('assets/logo.png',
+          height: 300,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(height: 15),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.login),
+          label: Text(l10n.signInWithGoogle),
+          onPressed: _signInWithGoogle,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppConstants.signInButtonColor,
+            foregroundColor: AppConstants.signInButtonTextColor,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.email),
+          label: Text(l10n.signInWithEmail),
+          onPressed: () => _showEmailPasswordDialog(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppConstants.signInButtonColor,
+            foregroundColor: AppConstants.signInButtonTextColor,
+          ),
+        ),
+      ],
+    );
+  }
 
   Future<Widget> _signInWithGoogle() async {
     final user = await _signInWithGoogleImpl();
@@ -137,6 +148,190 @@ class _LoginPageState extends State<LoginPage> {
       final GoogleSignInAuthentication googleAuth = googleUser!.authentication;
       final credential = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
       return await FirebaseAuth.instance.signInWithCredential(credential);
+    }
+  }
+
+  // Email/Password login popup dialog
+  void _showEmailPasswordDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _EmailPasswordDialog(),
+    );
+  }
+}
+
+class _EmailPasswordDialog extends StatefulWidget {
+  @override
+  State<_EmailPasswordDialog> createState() => _EmailPasswordDialogState();
+}
+
+class _EmailPasswordDialogState extends State<_EmailPasswordDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return AlertDialog(
+      title: Text(l10n.emailPasswordLogin),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: l10n.email,
+                  hintText: l10n.emailHint,
+                  prefixIcon: const Icon(Icons.email),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return l10n.emailRequired;
+                  }
+                  if (!value.contains('@') || !value.contains('.')) {
+                    return l10n.invalidEmail;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: l10n.password,
+                  hintText: l10n.passwordHint,
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return l10n.passwordRequired;
+                  }
+                  if (value.length < 6) {
+                    return l10n.passwordTooShort;
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : () => _handleEmailPasswordAuth(true),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.login),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : () => _handleEmailPasswordAuth(false),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.register),
+        ),
+      ],
+    );
+  }
+
+  // email/password firebase-authentication logic
+  Future<void> _handleEmailPasswordAuth(bool isLogin) async {
+    final l10n = AppLocalizations.of(context)!;
+    
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserCredential? userCredential;
+      
+      if (isLogin) {
+        // Login
+        userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        if (mounted) {
+          SnackbarMessages.show(context, l10n.loginSuccess);
+        }
+      } else {
+        // Register
+        userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        if (mounted) {
+          SnackbarMessages.show(context, l10n.registerSuccess);
+        }
+      }
+
+      if (mounted && userCredential != null) {
+        Navigator.of(context).pop();
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = l10n.signinFailed;
+      if (e.code == 'email-already-in-use') {
+        errorMessage = l10n.emailAlreadyInUse;
+      } else if (e.code == 'wrong-password') {
+        errorMessage = l10n.wrongPassword;
+      } else if (e.code == 'user-not-found') {
+        errorMessage = l10n.userNotFound;
+      } else if (e.code == 'invalid-email') {
+        errorMessage = l10n.invalidEmail;
+      }
+      
+      if (mounted) {
+        SnackbarMessages.show(context, errorMessage);
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarMessages.show(context, '${l10n.signinFailed}: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

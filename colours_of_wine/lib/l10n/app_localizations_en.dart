@@ -316,4 +316,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyzeLabel => 'Analyze Label';
+
+  @override
+  String get signInWithEmail => 'Continue with Email';
+
+  @override
+  String get signInWithGoogle => 'Continue with Google';
+
+  @override
+  String get email => 'Email';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get emailHint => 'Your.email@example.com';
+
+  @override
+  String get passwordHint => 'Enter password';
+
+  @override
+  String get login => 'Login';
+
+  @override
+  String get register => 'Register';
+
+  @override
+  String get emailPasswordLogin => 'Email/Password Login';
+
+  @override
+  String get emailRequired => 'Please enter an email address';
+
+  @override
+  String get passwordRequired => 'Please enter a password';
+
+  @override
+  String get passwordTooShort => 'Password must be at least 6 characters long';
+
+  @override
+  String get invalidEmail => 'Please enter a valid email address';
+
+  @override
+  String get emailAlreadyInUse => 'This email address is already in use';
+
+  @override
+  String get wrongPassword => 'Wrong password';
+
+  @override
+  String get userNotFound => 'No user found with this email address';
+
+  @override
+  String get registerSuccess => 'Registration successful!';
+
+  @override
+  String get loginSuccess => 'Login successful!';
 }

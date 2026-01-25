@@ -316,4 +316,58 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get analyzeLabel => 'Label analysieren';
+
+  @override
+  String get signInWithEmail => 'Mit E-Mail fortfahren';
+
+  @override
+  String get signInWithGoogle => 'Mit Google fortfahren';
+
+  @override
+  String get email => 'E-Mail';
+
+  @override
+  String get password => 'Passwort';
+
+  @override
+  String get emailHint => 'Ihre.email@beispiel.com';
+
+  @override
+  String get passwordHint => 'Passwort eingeben';
+
+  @override
+  String get login => 'Anmelden';
+
+  @override
+  String get register => 'Registrieren';
+
+  @override
+  String get emailPasswordLogin => 'E-Mail/Passwort Anmeldung';
+
+  @override
+  String get emailRequired => 'Bitte geben Sie eine E-Mail-Adresse ein';
+
+  @override
+  String get passwordRequired => 'Bitte geben Sie ein Passwort ein';
+
+  @override
+  String get passwordTooShort => 'Passwort muss mindestens 6 Zeichen lang sein';
+
+  @override
+  String get invalidEmail => 'Bitte geben Sie eine gültige E-Mail-Adresse ein';
+
+  @override
+  String get emailAlreadyInUse => 'Diese E-Mail-Adresse wird bereits verwendet';
+
+  @override
+  String get wrongPassword => 'Falsches Passwort';
+
+  @override
+  String get userNotFound => 'Kein Benutzer mit dieser E-Mail-Adresse gefunden';
+
+  @override
+  String get registerSuccess => 'Registrierung erfolgreich!';
+
+  @override
+  String get loginSuccess => 'Anmeldung erfolgreich!';
 }
