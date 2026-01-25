@@ -9,7 +9,7 @@
  * @param {boolean} residualSugarKnown - Whether the value is known/reliable
  */
 export function applySugarBar(ctx, width, height, residualSugar, residualSugarKnown) {
-  if (!residualSugarKnown) return;
+  //if (!residualSugarKnown) return;
 
   const barWidth = 30;
   const barX = width - barWidth;
