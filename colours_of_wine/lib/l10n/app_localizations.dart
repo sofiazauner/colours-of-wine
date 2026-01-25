@@ -98,7 +98,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Colors of Wine'**
+  /// **'Colours of Wine'**
   String get appTitle;
 
   /// No description provided for @meineWeine.

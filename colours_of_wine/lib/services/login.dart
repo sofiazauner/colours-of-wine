@@ -82,7 +82,7 @@ class _LoginPageState extends State<LoginPage> {
      mainAxisAlignment: MainAxisAlignment.center,
      children: [
       const Text(
-        'Colors of Wine',
+        'Colours of Wine',
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 32,

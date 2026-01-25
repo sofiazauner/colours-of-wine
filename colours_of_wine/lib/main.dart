@@ -34,7 +34,7 @@ class WineApp extends StatelessWidget {
       child: Consumer<LanguageProvider>(
         builder: (context, languageProvider, _) {
           return MaterialApp(
-            title: 'Colors of Wine',
+            title: 'Colours of Wine',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             localizationsDelegates: const [
