@@ -2,15 +2,11 @@
 
 /**
  * Draw a vertical bar on the right side showing residual sugar level
- * Only shown when residualSugarKnown is true
  * Fills logarithmically from bottom to top with #FF69B4 (hot pink)
  *
  * @param {number} residualSugar - Sugar level 0-100 (g/L)
- * @param {boolean} residualSugarKnown - Whether the value is known/reliable
  */
-export function applySugarBar(ctx, width, height, residualSugar, residualSugarKnown) {
-  //if (!residualSugarKnown) return;
-
+export function applySugarBar(ctx, width, height, residualSugar) {
   const barWidth = 30;
   const barX = width - barWidth;
 

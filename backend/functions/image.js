@@ -13,6 +13,7 @@ import {
   applyBarrel,
   applyBubbles,
   applyMinerality,
+  applySugarBar,
 } from "./renderEffects/index.js";
 
 /**
@@ -153,6 +154,8 @@ export async function generateImage(data) {
 
   // 8. Bubbles/effervescence (spritz)
   applyBubbles(ctx, centerX, centerY, maxRadius, width, height, spritz, 1.0);
+
+  applySugarBar(ctx, width, height, residualSugar);
 
   return canvas.toBuffer("image/png");
 }

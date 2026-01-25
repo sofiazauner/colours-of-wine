@@ -10,3 +10,4 @@ export { applyBody } from "./applyBody.js";
 export { applyBarrel } from "./applyBarrel.js";
 export { applyBubbles } from "./applyBubbles.js";
 export { applyMinerality } from "./applyMinerality.js";
+export { applySugarBar } from "./applySugarBar.js";
