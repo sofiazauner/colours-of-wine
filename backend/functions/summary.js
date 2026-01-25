@@ -218,23 +218,7 @@ export async function buildValidatedSummaryFromDescriptions(descriptions) {
     `Wasted ${(end - start) / 1000} seconds of the user's time in ${iteration} iterations`,
   );
 
-  // Return all visualization data
-  return {
-    summary: obj.summary,
-    wineType: obj.wineType,
-    baseColor: obj.baseColor,
-    acidity: obj.acidity,
-    residualSugar: obj.residualSugar,
-    depth: obj.depth,
-    body: obj.body,
-    fruitNotes: obj.fruitNotes,
-    nonFruitNotes: obj.nonFruitNotes,
-    barrelMaterial: obj.barrelMaterial,
-    barrelIntensity: obj.barrelIntensity,
-    mineralityNotes: obj.mineralityNotes,
-    spritz: obj.spritz,
-    approved: review.approved,
-  };
+  return obj;
 }
 
 // Wine type enum - determines base color of visualization

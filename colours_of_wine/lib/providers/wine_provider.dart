@@ -309,7 +309,6 @@ class WineProvider extends ChangeNotifier {
       );
       
       // parse result from backend (backend already parsed the sections)
-      final approved = result['approved'] as bool? ?? false;
       final imageString = result['image'] as String?;
       final noseText = result['nose'] as String? ?? '';
       final palateText = result['palate'] as String? ?? '';
