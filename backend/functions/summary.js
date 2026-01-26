@@ -270,9 +270,9 @@ const WriterModelZod = z.object({
       "Non-fruit flavor/aroma notes (earth, oak, mineral, etc.) with colors",
     ),
   barrelMaterial: z
-    .enum(["oak", "stainless", "none"])
+    .enum(["oak", "stainless", "both", "none"])
     .describe(
-      "Barrel material: oak (Holzfass/Barrique), stainless (Edelstahlfass), or none (kein Ausbau erwähnt)",
+      "Barrel material: oak (Holzfass/Barrique), stainless (Edelstahlfass), both (beide), oder none (kein Ausbau erwähnt)",
     ),
   barrelIntensity: z
     .number()
@@ -451,6 +451,7 @@ Beispiele:
 Identifiziere das Fassmaterial:
 - "oak": Wenn der Wein im Holzfass/Barrique/Eiche erzeugt wird (z.B. "Barrique-Ausbau", "Eichenfass", "Holzfass", "oak-aged", "wood", "Holz")
 - "stainless": Wenn der Wein im Edelstahlfass/Stainless Steel erzeugt wird (z.B. "Edelstahlfass", "stainless steel", "Stahltank", "Edelstahl")
+- "both": Wenn beide Fassmaterialien erwähnt werden
 - "none": Wenn kein spezifisches Fassmaterial erwähnt wird oder es unklar ist
 
 Die Intensität (barrelIntensity: 0-1) bestimmt, wie stark das Fassmaterial den Wein beeinflusst:
@@ -568,10 +569,11 @@ Prüfe folgende Punkte:
 - Maximal 5 pro Kategorie
 
 ## Fassmaterial (barrelMaterial) und Intensität (barrelIntensity)
-- Wurde das Fassmaterial korrekt erkannt? (oak/stainless/none)
+- Wurde das Fassmaterial korrekt erkannt? (oak/stainless/both/none)
 - Passt die Intensität zur Beschreibung? (0=kein Einfluss, 1=starker Einfluss)
 - Begriffe wie "Barrique", "Eichenfass", "Holzfass" → oak
 - Begriffe wie "Edelstahlfass", "Stahltank", "stainless steel" → stainless
+- Beide werden erwähnt → both
 - Wenn nichts erwähnt → none
 
 ## Mineralik-Noten (mineralityNotes)

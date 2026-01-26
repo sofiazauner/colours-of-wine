@@ -8,7 +8,7 @@ import { hsvToRgb } from "./colorUtils.js";
  * - Stainless steel barrel: blue-gray tones (metallic)
  * - None: no effect
  *
- * @param {string} barrelMaterial - "oak", "stainless", or "none"
+ * @param {string} barrelMaterial - "oak", "stainless", "both", or "none"
  * @param {number} barrelIntensity - Intensity of the vignette effect (0-1)
  */
 export function applyBarrel(ctx, centerX, centerY, width, height, barrelMaterial, barrelIntensity) {
@@ -18,15 +18,22 @@ export function applyBarrel(ctx, centerX, centerY, width, height, barrelMaterial
 
   // Determine color based on barrel material
   let h, s, v;
-  if (barrelMaterial === "oak") {
+  switch (barrelMaterial) {
+  case "oak":
     h = 20;                                 // brown-town
     s = 0.35 + barrelIntensity * 0.65;      // more intense  = more color
     v = 0.45 - barrelIntensity * 0.25;      // more intense  = darker
-  } else if (barrelMaterial === "stainless") {
+    break;
+  case "stainless":
     h = 210;                                // blue-gray
     s = 0.25 + barrelIntensity * 0.17;      // more intense  = more grey
     v = 0.70 - barrelIntensity * 0.15;      // more intense  = darker
-  } else {
+    break;
+  case "both":
+    applyBarrel(ctx, centerX, centerY, width, height, "oak", barrelIntensity);
+    applyBarrel(ctx, centerX, centerY, width, height, "stainless", barrelIntensity);
+    return;
+  default:
     return;
   }
   const { r, g, b } = hsvToRgb(h, s, v);
