@@ -136,11 +136,11 @@ export async function generateContentRetry(obj) {
     return new Promise(resolve => setTimeout(resolve, delay));
   }
   const ai = await getAi();
-  for (let i = 0; i < 3 /* idk */; i++) {
+  for (let i = 0; ; i++) {
     try {
       return await ai.models.generateContent(obj);
     } catch (e) {
-      if (e?.status != 503)
+      if (e?.status != 503 || i >= 5)
         throw e;
       logger.info("Got 503 from Gemini, retrying");
       await asyncSleep(5000);
