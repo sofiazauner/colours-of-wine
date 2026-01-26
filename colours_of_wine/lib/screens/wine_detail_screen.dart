@@ -103,25 +103,6 @@ class WineDetailScreen extends StatelessWidget {
                 ? l10n.removeFromFavorites
                 : l10n.addToFavorites,
           ),
-          IconButton(
-            icon: Image.asset(
-              'assets/documents_icon.png',
-              width: 24,
-              height: 24,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.description, size: 24);
-              },
-            ),
-            tooltip: l10n.showDescriptions,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WineDescriptionsScreen(wineId: wine.id),
-                ),
-              );
-            },
-          ),
           Consumer<LanguageProvider>(
             builder: (context, languageProvider, _) {
               return PopupMenuButton<String>(
@@ -303,6 +284,32 @@ class WineDetailScreen extends StatelessWidget {
                 l10n.foodPairing,
                 wine.foodPairing,
               ),
+
+            const SizedBox(height: 12),
+
+            // show all descriptions below the tasting notes
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                icon: Image.asset(
+                  'assets/documents_icon.png',
+                  width: 20,
+                  height: 20,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.description, size: 20);
+                  },
+                ),
+                label: Text(l10n.showDescriptions),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WineDescriptionsScreen(wineId: wine.id),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
