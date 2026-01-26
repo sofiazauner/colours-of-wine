@@ -71,13 +71,21 @@ class _WineDescriptionsScreenState extends State<WineDescriptionsScreen> {
           },
         ),
           actions: [
-            // button to select all descriptions
+            // button to toggle all descriptions (select/deselect all)
             if (wine.descriptions.isNotEmpty)
-              IconButton(
-                icon: const Icon(Icons.select_all),
-                tooltip: l10n.selectAllDescriptions,
-                onPressed: () {
-                  wineProvider.selectAllDescriptions(widget.wineId);
+              Builder(
+                builder: (context) {
+                  final allSelected = wine.descriptions.isNotEmpty && 
+                      wine.descriptions.every((desc) => desc.isUsedForSummary);
+                  return IconButton(
+                    icon: Icon(allSelected ? Icons.deselect : Icons.select_all),
+                    tooltip: allSelected 
+                        ? (l10n.localeName == 'de' ? 'Alle abwählen' : 'Deselect All')
+                        : l10n.selectAllDescriptions,
+                    onPressed: () {
+                      wineProvider.selectAllDescriptions(widget.wineId);
+                    },
+                  );
                 },
               ),
             // button to search descriptions from internet
@@ -417,15 +425,17 @@ class _DescriptionCardState extends State<DescriptionCard> {
                             ),
                             const SizedBox(width: 8),
                             ElevatedButton(
-                              onPressed: () {
-                                widget.wineProvider.updateDescriptionText(
+                              onPressed: () async {
+                                await widget.wineProvider.updateDescriptionText(
                                   widget.wineId,
                                   widget.description.id,
                                   _textController.text,
                                 );
-                                setState(() {
-                                  _isEditing = false;
-                                });
+                                if (mounted) {
+                                  setState(() {
+                                    _isEditing = false;
+                                  });
+                                }
                               },
                               child: Text(l10n.save),
                             ),

@@ -565,13 +565,21 @@ class WineProvider extends ChangeNotifier {
     }
   }
 
-  /// selects all descriptions for a wine to be used in summary generation.
+  /// Toggles all descriptions for a wine to be used in summary generation.
+  /// If all are selected, deselects all. Otherwise, selects all.
   void selectAllDescriptions(String wineId) {
     final wineIndex = _wines.indexWhere((w) => w.id == wineId);
     if (wineIndex != -1) {
       final wine = _wines[wineIndex];
+      
+      // Check if all descriptions are currently selected
+      final allSelected = wine.descriptions.isNotEmpty && 
+          wine.descriptions.every((desc) => desc.isUsedForSummary);
+      
+      // Toggle: if all selected, deselect all; otherwise select all
+      final newValue = !allSelected;
       final updatedDescriptions = wine.descriptions.map((desc) {
-        return desc.copyWith(isUsedForSummary: true);
+        return desc.copyWith(isUsedForSummary: newValue);
       }).toList();
       
       _wines[wineIndex] = wine.copyWith(descriptions: updatedDescriptions);
@@ -601,7 +609,7 @@ class WineProvider extends ChangeNotifier {
     }
   }
 
-  void updateDescriptionText(String wineId, String descriptionId, String text) {
+  Future<void> updateDescriptionText(String wineId, String descriptionId, String text) async {
     final wineIndex = _wines.indexWhere((w) => w.id == wineId);
     if (wineIndex != -1) {
       final wine = _wines[wineIndex];
@@ -612,9 +620,27 @@ class WineProvider extends ChangeNotifier {
         return desc;
       }).toList();
 
-      _wines[wineIndex] = wine.copyWith(descriptions: updatedDescriptions);
-      // only save to SharedPreferences if not "Meine Weine"
-      if (wine.category != WineCategory.meineWeine) {
+      final updatedWine = wine.copyWith(descriptions: updatedDescriptions);
+      _wines[wineIndex] = updatedWine;
+      
+      // save to backend for "Meine Weine" wines
+      if (wine.category == WineCategory.meineWeine) {
+        if (_wineRepository == null) {
+          initializeRepository();
+        }
+        if (_wineRepository != null && FirebaseAuth.instance.currentUser != null) {
+          try {
+            await _wineRepository!.updateWineInfo(updatedWine);
+            debugPrint('Successfully updated description in backend for wine: $wineId');
+          } catch (e) {
+            debugPrint('Error updating description in backend: $e');
+            _errorMessage = 'Error saving description: $e';
+            notifyListeners();
+            // don't rethrow - local state is already updated
+          }
+        }
+      } else {
+        // only save to SharedPreferences if not "Meine Weine"
         _saveStates();
       }
       notifyListeners();

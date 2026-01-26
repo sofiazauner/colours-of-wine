@@ -117,6 +117,23 @@ class _WineDetailScreenState extends State<WineDetailScreen> {
           },
         ),
         actions: [
+          // button to toggle all descriptions (select/deselect all)
+          if (wine.descriptions.isNotEmpty)
+            Builder(
+              builder: (context) {
+                final allSelected = wine.descriptions.isNotEmpty && 
+                    wine.descriptions.every((desc) => desc.isUsedForSummary);
+                return IconButton(
+                  icon: Icon(allSelected ? Icons.deselect : Icons.select_all),
+                  tooltip: allSelected 
+                      ? (l10n.localeName == 'de' ? 'Alle abwählen' : 'Deselect All')
+                      : l10n.selectAllDescriptions,
+                  onPressed: () {
+                    wineProvider.selectAllDescriptions(widget.wineId);
+                  },
+                );
+              },
+            ),
           IconButton(
             icon: Icon(wine.isFavorite ? Icons.favorite : Icons.favorite_border),
             color: wine.isFavorite ? Colors.red : null,

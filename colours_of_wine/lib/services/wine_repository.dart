@@ -268,4 +268,54 @@ class WineRepository {
       throw ApiException(response.statusCode, "Error: Delete failed");
     }
   }
+
+  /// Updates wine information (including descriptions) in the backend database.
+  /// 
+  /// Takes a Wine object and sends the complete wine info to update the stored entry.
+  /// The wine ID is sent as a query parameter to identify which wine to update.
+  /// Throws [ApiException] if the API call fails.
+  /// Throws [NetworkException] if network connectivity issues occur.
+  Future<void> updateWineInfo(Wine wine) async {
+    final token = await getToken();
+    final fromImportedValue = wine.fromImported ?? 
+        (wine.category.name == 'importierteBeschreibungen' ? 'imported' : null);
+    
+    final wineInfo = {
+      'name': wine.name,
+      'year': wine.year,
+      'producer': wine.producer,
+      'region': wine.region,
+      'country': wine.country,
+      'descriptions': wine.descriptions.map((d) => d.toJson()).toList(),
+      'fromImported': fromImportedValue,
+    };
+    
+    final body = {
+      'wineInfo': wineInfo,
+    };
+    
+    final url = Uri.parse("$baseURL/updateWineInfo").replace(
+      queryParameters: {
+        'token': token,
+        'id': wine.id,
+      },
+    );
+
+    final response = await http.post(
+      url,
+      headers: const {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    ).timeout(
+      AppConstants.httpTimeout,
+      onTimeout: () {
+        throw NetworkException('Request timed out');
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(response.statusCode, "Failed to update wine info");
+    }
+  }
 }

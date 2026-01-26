@@ -113,7 +113,7 @@ export const WineComponents = [
 export function onWineRequest(fun) {
   return onRequest({cors: true}, async (req, res) => {
     if (req.method === 'OPTIONS') {
-      res.set('Access-Control-Allow-Methods', 'GET');
+      res.set('Access-Control-Allow-Methods', 'GET, POST');
       res.set('Access-Control-Allow-Headers', 'Content-Type');
       res.set('Access-Control-Max-Age', '3600');
       return res.status(204).send('');
