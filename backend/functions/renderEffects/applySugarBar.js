@@ -16,8 +16,8 @@ export function applySugarBar(ctx, width, height, residualSugar) {
 
   // Logarithmic fill: log scale makes low values more visible
   // Max is 500 g/L, using log(1 + x) to handle 0
-  const normalizedSugar = Math.max(0, Math.min(500, residualSugar));
-  const logFill = Math.log(1 + normalizedSugar) / Math.log(501);
+  const normalizedSugar = Math.floor(residualSugar / 100 * 500);
+  const logFill = Math.log(1 + residualSugar) / Math.log(101);
 
   const fillHeight = height * logFill;
   const fillY = height - fillHeight;

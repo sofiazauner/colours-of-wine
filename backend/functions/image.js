@@ -9,7 +9,6 @@ import {
   applyAcidity,
   applyDepth,
   applyBody,
-  applySugar,
   applyBarrel,
   applyBubbles,
   applyMinerality,
@@ -77,10 +76,10 @@ export async function generateImage(data) {
 
   // === RENDER PIPELINE ===
 
-  // 1. Base wine color gradient
+  // Base wine color gradient
   applyBase(ctx, centerX, centerY, maxRadius, baseColor);
 
-  // 2. Tasting note overlays
+  // Tasting note overlays
   applyNotes(
     ctx,
     centerX,
@@ -91,10 +90,10 @@ export async function generateImage(data) {
     nonFruitNotes,
   );
 
-  // 3. Body/structure (saturation boost + swirling movement)
+  // Body/structure (saturation boost + swirling movement)
   applyBody(ctx, centerX, centerY, maxRadius, width, height, baseColor, body);
 
-  // 4. Acidity and Depth (intensity based on wine type)
+  // Acidity and Depth (intensity based on wine type)
   const { acidityIntensity, depthIntensity } = getEffectIntensities(wineType);
   const coreRadiusInner = coreRadius * 0.8;
 
@@ -109,18 +108,7 @@ export async function generateImage(data) {
   );
   applyDepth(ctx, centerX, centerY, coreRadius, depth, depthIntensity);
 
-  // 5. Sugar indicator (pink glow at bottom)
-  applySugar(
-    ctx,
-    centerX,
-    centerY,
-    maxRadius,
-    width,
-    height,
-    residualSugar / 100,
-  );
-
-  // 6. Barrel material vignette (oak = brown, stainless = blue-gray)
+  // Barrel material
   applyBarrel(
     ctx,
     centerX,
@@ -131,7 +119,7 @@ export async function generateImage(data) {
     barrelIntensity,
   );
 
-  // 7. Minerality (multiple notes, max 500 sparkles total)
+  // Minerality (multiple notes, max 500 sparkles total)
   // Each note gets an equal share of budget, then scaled by its intensity
   // Intensity also affects opacity
   if (mineralityNotes && mineralityNotes.length > 0) {
@@ -152,7 +140,7 @@ export async function generateImage(data) {
     }
   }
 
-  // 8. Bubbles/effervescence (spritz)
+  // Bubbles/effervescence (spritz)
   applyBubbles(ctx, centerX, centerY, maxRadius, width, height, spritz, 1.0);
 
   applySugarBar(ctx, width, height, residualSugar);

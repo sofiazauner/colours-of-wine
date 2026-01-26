@@ -100,7 +100,7 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
     wineType: result.wineType,
     baseColor: result.baseColor,
     acidity: result.acidity,
-    residualSugar: result.residualSugar / 100,
+    residualSugar: result.residualSugar,
     depth: result.depth,
     body: result.body,
     fruitNotes: result.fruitNotes,
