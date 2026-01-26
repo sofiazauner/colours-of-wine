@@ -565,7 +565,7 @@ class WineProvider extends ChangeNotifier {
     }
   }
 
-  /// Toggles all descriptions for a wine to be used in summary generation.
+  /// selects all descriptions for a wine to be used in summary generation.
   /// If all are selected, deselects all. Otherwise, selects all.
   void selectAllDescriptions(String wineId) {
     final wineIndex = _wines.indexWhere((w) => w.id == wineId);
@@ -576,7 +576,6 @@ class WineProvider extends ChangeNotifier {
       final allSelected = wine.descriptions.isNotEmpty && 
           wine.descriptions.every((desc) => desc.isUsedForSummary);
       
-      // Toggle: if all selected, deselect all; otherwise select all
       final newValue = !allSelected;
       final updatedDescriptions = wine.descriptions.map((desc) {
         return desc.copyWith(isUsedForSummary: newValue);

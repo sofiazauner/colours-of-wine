@@ -271,7 +271,7 @@ class WineRepository {
 
   /// Updates wine information (including descriptions) in the backend database.
   /// 
-  /// Takes a Wine object and sends the complete wine info to update the stored entry.
+  /// Takes a Wine object and sends wine info to update the stored entry.
   /// The wine ID is sent as a query parameter to identify which wine to update.
   /// Throws [ApiException] if the API call fails.
   /// Throws [NetworkException] if network connectivity issues occur.
