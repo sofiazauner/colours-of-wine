@@ -129,6 +129,19 @@ export const generateSummary = onWineRequest(async (req, res, user) => {
       ? wineInfo.descriptions
       : [];
 
+    const old = await searchCollection
+      .where("uid", "==", uid)
+      .where("name", "==", wineName)
+      .where("year", "==", wineInfo.year)
+      .where("producer", "==", wineInfo.producer)
+      .where("region", "==", wineInfo.region)
+      .where("country", "==", wineInfo.country)
+      .get();
+    old.forEach(async wine => {
+      const doc = await searchCollection.doc(wine.id);
+      await doc.delete();
+    });
+
     await searchCollection.add({
       uid: uid,
       name: wineName,
