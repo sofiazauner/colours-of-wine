@@ -120,5 +120,6 @@
   "wrongPassword": "Wrong password",
   "userNotFound": "No user found with this email address",
   "registerSuccess": "Registration successful!",
-  "loginSuccess": "Login successful!"
+  "loginSuccess": "Login successful!",
+  "generatedDescription": "AI description"
 }

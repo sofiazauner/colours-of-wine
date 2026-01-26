@@ -155,7 +155,7 @@ class _WineDescriptionsScreenState extends State<WineDescriptionsScreen> {
               },
               itemBuilder: (context, index) {
                 final description = wine.descriptions[index];
-                return _DescriptionCard(
+                return DescriptionCard(
                   key: ValueKey('desc_${widget._uniqueId}_${widget.wineId}_${description.id}_$index'),
                   wineId: widget.wineId,
                   description: description,
@@ -235,12 +235,12 @@ class _WineDescriptionsScreenState extends State<WineDescriptionsScreen> {
   }
 }
 
-class _DescriptionCard extends StatefulWidget {
+class DescriptionCard extends StatefulWidget {
   final String wineId;
   final WineDescription description;
   final WineProvider wineProvider;
 
-  const _DescriptionCard({
+  const DescriptionCard({
     super.key,
     required this.wineId,
     required this.description,
@@ -248,10 +248,10 @@ class _DescriptionCard extends StatefulWidget {
   });
 
   @override
-  State<_DescriptionCard> createState() => _DescriptionCardState();
+  State<DescriptionCard> createState() => _DescriptionCardState();
 }
 
-class _DescriptionCardState extends State<_DescriptionCard> {
+class _DescriptionCardState extends State<DescriptionCard> {
   bool _isEditing = false;
   late TextEditingController _textController;
 

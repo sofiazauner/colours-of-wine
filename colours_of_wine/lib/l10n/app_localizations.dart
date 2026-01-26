@@ -820,6 +820,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Login successful!'**
   String get loginSuccess;
+
+  /// No description provided for @generatedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'AI description'**
+  String get generatedDescription;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

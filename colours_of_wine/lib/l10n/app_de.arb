@@ -123,5 +123,6 @@
   "wrongPassword": "Falsches Passwort",
   "userNotFound": "Kein Benutzer mit dieser E-Mail-Adresse gefunden",
   "registerSuccess": "Registrierung erfolgreich!",
-  "loginSuccess": "Anmeldung erfolgreich!"
+  "loginSuccess": "Anmeldung erfolgreich!",
+  "generatedDescription": "AI Zusammenfassung"
 }

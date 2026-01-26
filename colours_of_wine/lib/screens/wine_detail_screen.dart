@@ -14,11 +14,33 @@ import 'new_wine_form_screen.dart';
 import 'wine_descriptions_screen.dart';
 import '../dialogs/add_description_dialog.dart';
 import '../models/wine_description.dart';
+import '../utils/snackbar_messages.dart';
 
-class WineDetailScreen extends StatelessWidget {
+class WineDetailScreen extends StatefulWidget {
   final String wineId;
+  final String _uniqueId;           // internal unique identifier for this screen instance
 
-  const WineDetailScreen({super.key, required this.wineId});
+  WineDetailScreen({
+    super.key,
+    required this.wineId,
+    String? uniqueId,
+  }) : _uniqueId = uniqueId ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+  @override
+  State<WineDetailScreen> createState() => _WineDetailScreenState();
+}
+
+class _WineDetailScreenState extends State<WineDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // enable default number of descriptions when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final wineProvider = Provider.of<WineProvider>(context, listen: false);
+      
+      await wineProvider.enableDefaultDescriptionsForSummary(widget.wineId);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +48,7 @@ class WineDetailScreen extends StatelessWidget {
     
     return Consumer<WineProvider>(
       builder: (context, wineProvider, _) {
-        final wine = wineProvider.getWineById(wineId);
+        final wine = wineProvider.getWineById(widget.wineId);
 
         if (wine == null) {
           return Scaffold(
@@ -49,6 +71,8 @@ class WineDetailScreen extends StatelessWidget {
   }
 
   Widget _buildDetailScreen(BuildContext context, AppLocalizations l10n, WineProvider wineProvider, Wine wine) {
+
+    late final Key _listKey = ValueKey('reorderable_descriptions_${widget.wineId}_${widget._uniqueId}');
 
     return Scaffold(
       appBar: AppBar(
@@ -97,7 +121,7 @@ class WineDetailScreen extends StatelessWidget {
             icon: Icon(wine.isFavorite ? Icons.favorite : Icons.favorite_border),
             color: wine.isFavorite ? Colors.red : null,
             onPressed: () {
-              wineProvider.toggleFavorite(wineId);
+              wineProvider.toggleFavorite(widget.wineId);
             },
             tooltip: wine.isFavorite
                 ? l10n.removeFromFavorites
@@ -231,104 +255,163 @@ class WineDetailScreen extends StatelessWidget {
             ],
             
             const SizedBox(height: 32),
-            
-            // alcohol
-            if (wine.alcohol > 0)
-              _buildInfoRow(context, l10n.alcohol, '${wine.alcohol.toStringAsFixed(1)}%'),
-            
-            if (wine.saure != null) ...[
-              if (wine.alcohol > 0) const SizedBox(height: 8),
-              _buildInfoRow(context, l10n.saure, '${wine.saure!.toStringAsFixed(1)} ${l10n.saureUnit}'),
-            ],
-            
-            if (wine.nose.isNotEmpty || wine.palate.isNotEmpty || wine.finish.isNotEmpty ||
-                wine.vinification.isNotEmpty || wine.foodPairing.isNotEmpty)
-              const SizedBox(height: 24),
-            
-            // nose
-            if (wine.nose.isNotEmpty)
-              _buildSection(
-                context,
-                l10n.nose,
-                wine.nose,
-              ),
-            
-            // palate
-            if (wine.palate.isNotEmpty)
-              _buildSection(
-                context,
-                l10n.palate,
-                wine.palate,
-              ),
-            
-            // finish
-            if (wine.finish.isNotEmpty)
-              _buildSection(
-                context,
-                l10n.finish,
-                wine.finish,
-              ),
-            
-            // vinification
-            if (wine.vinification.isNotEmpty)
-              _buildSection(
-                context,
-                l10n.vinification,
-                wine.vinification,
-              ),
-            
-            // food pairing
-            if (wine.foodPairing.isNotEmpty)
-              _buildSection(
-                context,
-                l10n.foodPairing,
-                wine.foodPairing,
-              ),
 
-            const SizedBox(height: 12),
-
-            // show all descriptions below the tasting notes
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                icon: Image.asset(
-                  'assets/documents_icon.png',
-                  width: 20,
-                  height: 20,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.description, size: 20);
-                  },
-                ),
-                label: Text(l10n.showDescriptions),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => WineDescriptionsScreen(wineId: wine.id),
-                    ),
-                  );
-                },
+            Container(
+              width: double.infinity,
+              child: Card(
+                margin: const EdgeInsets.all(16),
+                child: ExpansionTile(
+                  childrenPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  expandedAlignment: Alignment.topLeft,
+                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                  title: Text(l10n.generatedDescription),
+                  children: [
+                    // alcohol
+                    if (wine.alcohol > 0)
+                      _buildInfoRow(context, l10n.alcohol, '${wine.alcohol.toStringAsFixed(1)}%'),
+                    
+                    if (wine.saure != null) ...[
+                      if (wine.alcohol > 0) const SizedBox(height: 8),
+                      _buildInfoRow(context, l10n.saure, '${wine.saure!.toStringAsFixed(1)} ${l10n.saureUnit}'),
+                    ],
+                    
+                    if (wine.nose.isNotEmpty || wine.palate.isNotEmpty || wine.finish.isNotEmpty ||
+                        wine.vinification.isNotEmpty || wine.foodPairing.isNotEmpty)
+                      const SizedBox(height: 24),
+                    
+                    // nose
+                    if (wine.nose.isNotEmpty)
+                      _buildSection(
+                        context,
+                        l10n.nose,
+                        wine.nose,
+                      ),
+                    
+                    // palate
+                    if (wine.palate.isNotEmpty)
+                      _buildSection(
+                        context,
+                        l10n.palate,
+                        wine.palate,
+                      ),
+                    
+                    // finish
+                    if (wine.finish.isNotEmpty)
+                      _buildSection(
+                        context,
+                        l10n.finish,
+                        wine.finish,
+                      ),
+                    
+                    // vinification
+                    if (wine.vinification.isNotEmpty)
+                      _buildSection(
+                        context,
+                        l10n.vinification,
+                        wine.vinification,
+                      ),
+                    
+                    // food pairing
+                    if (wine.foodPairing.isNotEmpty)
+                      _buildSection(
+                        context,
+                        l10n.foodPairing,
+                        wine.foodPairing,
+                      ),
+                  ]
+                )
               ),
             ),
+
+            ReorderableListView.builder(
+              key: _listKey,
+              padding: const EdgeInsets.only(left: 16, right: 16),
+              scrollDirection: Axis.vertical,
+              shrinkWrap: true,
+              itemCount: wine.descriptions.length,
+              onReorder: (oldIndex, newIndex) {
+                wineProvider.reorderDescriptions(widget.wineId, oldIndex, newIndex);
+              },
+              itemBuilder: (context, index) {
+                final description = wine.descriptions[index];
+                return DescriptionCard(
+                  key: ValueKey('desc_${widget._uniqueId}_${widget.wineId}_${description.id}_$index'),
+                  wineId: widget.wineId,
+                  description: description,
+                  wineProvider: wineProvider,
+                );
+              },
+            )
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final description = await showDialog<WineDescription>(
-            context: context,
-            builder: (context) => AddDescriptionDialog(
-              defaultTitle: wine.displayName,
+      floatingActionButton: Align(
+        alignment: Alignment.bottomRight,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton(
+              onPressed: () async {
+                final description = await showDialog<WineDescription>(
+                  context: context,
+                  builder: (context) => AddDescriptionDialog(
+                    defaultTitle: wine.displayName,
+                  ),
+                );
+                if (description != null) {
+                  final wineProvider = Provider.of<WineProvider>(context, listen: false);
+                  wineProvider.addDescription(wine.id, description);
+                }
+              },
+              child: const Icon(Icons.add),
             ),
-          );
-          if (description != null) {
-            final wineProvider = Provider.of<WineProvider>(context, listen: false);
-            wineProvider.addDescription(wine.id, description);
-          }
-        },
-        icon: const Icon(Icons.edit_note),
-        label: Text(AppLocalizations.of(context)!.describeWine),
-      ),
+            const SizedBox(height: 8),
+            FloatingActionButton.extended(
+              heroTag: 'generate_summary_${widget.wineId}',
+              onPressed: () async {
+                final wine = wineProvider.getWineById(widget.wineId);
+                if (wine == null) return;
+                // check if at least one description is selected
+                final selectedCount = wine.descriptions.where((d) => d.isUsedForSummary).length;
+                if (selectedCount == 0) {
+                  if (mounted) {
+                    SnackbarMessages.show(context, l10n.atLeastOneDescriptionRequired);
+                  }
+                  return;
+                }
+                if (mounted) {
+                  // show until it is done
+                  SnackbarMessages.show(context, l10n.generatingSummaryAndPic,duration: Duration(seconds: 60));
+                }
+                try {
+                  // generate summary and image using backend
+                  await wineProvider.generateSummary(wine);
+                  SnackbarMessages.hide(context);
+                  // wait a bit to ensure state is fully updated
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  // navigate directly to wine detail screen with summary
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WineDetailScreen(wineId: widget.wineId),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  SnackbarMessages.hide(context);
+                  if (mounted) {
+                    SnackbarMessages.show(context, '${l10n.summaryGenerationFailed}: $e');
+                  }
+                }
+              },
+              icon: const Icon(Icons.auto_awesome),
+              label: Text(l10n.generateSummaryAndVisualization),
+            ),
+          ]
+        )
+      )
     );
   }
 

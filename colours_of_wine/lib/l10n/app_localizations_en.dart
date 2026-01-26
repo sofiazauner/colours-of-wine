@@ -370,4 +370,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginSuccess => 'Login successful!';
+
+  @override
+  String get generatedDescription => 'AI description';
 }
