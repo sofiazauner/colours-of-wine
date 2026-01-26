@@ -76,19 +76,20 @@ class WineProvider extends ChangeNotifier {
           
           // separate wines by category
           final meineWeineList = backendWines;          // only backend wines for "meine Weine"
-          final otherWines = sampleWines.where((w) =>   // keep sample wines for "importierte Weine"
-            w.category != WineCategory.meineWeine
+          // don't load sample wines for "importierte Beschreibungen" - easy fix, so that it can be reversed later if needed
+          final otherWines = sampleWines.where((w) =>   // keep sample wines for  "importierte Beschreibungen" ()
+            w.category != WineCategory.meineWeine && w.category != WineCategory.importierteBeschreibungen // if we want to use sample wines for imported descriptions, remove this secound condition)
           ).toList();
           
           _wines = [...meineWeineList, ...otherWines];
         } catch (e) {
           debugPrint('Error loading from backend: $e');
-          // fallback: use all sample wines
-          _wines = sampleWines.toList();
+          // fallback: use sample wines (now also not enabled)
+          _wines = sampleWines.where((w) => w.category != WineCategory.importierteBeschreibungen).toList();
         }
       } else {
-        // no auth or repository, also use all sample wines
-        _wines = sampleWines.toList();
+        // no auth or repository, also use all sample wines (now also not enabled)
+        _wines = sampleWines.where((w) => w.category != WineCategory.importierteBeschreibungen).toList();
       }
       
       _initializedWines.clear();
