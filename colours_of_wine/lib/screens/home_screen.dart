@@ -36,16 +36,16 @@ class _HomeScreenState extends State<HomeScreen> {
         wines: wineProvider.meineWeine,
       ),
       CategoryTab(
-        title: l10n.importierteBeschreibungen,
-        icon: Icons.import_export,
-        category: WineCategory.importierteBeschreibungen,
-        wines: wineProvider.importierteBeschreibungen,
-      ),
-      CategoryTab(
         title: l10n.favoriten,
         icon: Icons.favorite,
         category: WineCategory.favoriten,
         wines: wineProvider.favoriten,
+      ),
+      CategoryTab(
+        title: l10n.importierteBeschreibungen,
+        icon: Icons.import_export,
+        category: WineCategory.importierteBeschreibungen,
+        wines: wineProvider.importierteBeschreibungen,
       ),
     ];
 
